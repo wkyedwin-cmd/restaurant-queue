@@ -25,7 +25,6 @@ function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-// 🔐 登录密码
 window.checkPassword = function(){
   const input = document.getElementById("password").value;
   const correctPassword = "1234";
@@ -40,79 +39,9 @@ window.checkPassword = function(){
 
 onSnapshot(collection(db,"queues"),(snapshot)=>{
 
-  let total = 0;
-  let indoor = 0;
-  let outdoor = 0;
-  let noPref = 0;
-  let smallGroup = 0;
-  let bigGroup = 0;
-
   let waitingHTML = "<h3>🟡 Waiting</h3>";
+  let confirmedHTML = "<h3>🔵 Confirmed</h3>";
   let completedHTML = "<h3>🟢 Completed</h3>";
   let cancelledHTML = "<h3>🔴 Cancelled</h3>";
 
-  snapshot.forEach((d)=>{
-    const data = d.data();
-
-    if(data.date === today()){
-
-      total++;
-
-      if(data.seatPreference?.includes("室内")) indoor++;
-      if(data.seatPreference?.includes("室外")) outdoor++;
-      if(data.seatPreference?.includes("随意")) noPref++;
-
-      if(data.adults <=4) smallGroup++;
-      if(data.adults >=5) bigGroup++;
-
-      const block = `
-      <div style="border:1px solid #ccc;margin:5px;padding:8px;">
-      <b>${data.queueNumber}</b><br>
-      电话: ${data.phone}<br>
-      成人: ${data.adults} | 宝宝椅: ${data.babyChairs}<br>
-      座位: ${data.seatPreference}<br><br>
-
-      <button onclick="complete('${d.id}')">完成</button>
-      <button onclick="cancel('${d.id}')">取消</button>
-      <a target="_blank" href="https://wa.me/${data.phone.replace('+','')}">
-      WhatsApp</a>
-      </div>
-      `;
-
-      if(data.status === "waiting") waitingHTML += block;
-      if(data.status === "completed") completedHTML += block;
-      if(data.status === "cancelled") cancelledHTML += block;
-    }
-  });
-
-  document.getElementById("stats").innerHTML = `
-  📊 今日数据统计<br><br>
-  总排队: ${total} 组<br>
-  室内: ${indoor}<br>
-  室外: ${outdoor}<br>
-  随意最快: ${noPref}<br><br>
-  1–4人: ${smallGroup}<br>
-  5人以上: ${bigGroup}
-  `;
-
-  document.getElementById("waiting").innerHTML = waitingHTML;
-  document.getElementById("completed").innerHTML = completedHTML;
-  document.getElementById("cancelled").innerHTML = cancelledHTML;
-
-});
-
-window.complete = async function(id){
-  await updateDoc(doc(db,"queues",id),{status:"completed"});
-}
-
-window.cancel = async function(id){
-  await updateDoc(doc(db,"queues",id),{status:"cancelled"});
-}
-</script>
-</head>
-
-<body>
-
-<div id="login">
-  <h2>Admin Login</h2>
-  <input type="password" id="password" placeholder="Enter Pas
+  snapshot.forEach((d)=
