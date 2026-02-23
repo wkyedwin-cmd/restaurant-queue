@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <title>Queue System</title>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
   authDomain: "yunnans-1u.firebaseapp.com",
@@ -18,51 +17,38 @@ const firebaseConfig = {
   appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-window.joinQueue = async function(){
+function joinQueue(){
 
+  const name = document.getElementById("name").value;
   const phone = document.getElementById("phone").value;
-  const adults = parseInt(document.getElementById("adults").value);
-  const babyChairs = parseInt(document.getElementById("babyChairs").value) || 0;
-  const seatPreference = document.querySelector('input[name="seat"]:checked');
+  const adults = document.getElementById("adults").value;
+  const babyChairs = document.getElementById("babyChairs").value;
+  const seat = document.querySelector('input[name="seat"]:checked');
 
-  if(!phone || !adults || !seatPreference){
+  if(!name || !phone || !adults || !seat){
     alert("请填写完整资料");
     return;
   }
 
-  const seat = seatPreference.value;
-
-  // 计算今天排号数量
-  const q = query(collection(db,"queues"), where("date","==",today()));
-  const snapshot = await getDocs(q);
-
-  const queueNumber = "Q" + String(snapshot.size+1).padStart(3,'0');
-
-  await addDoc(collection(db,"queues"),{
-    queueNumber,
-    phone,
-    adults,
-    babyChairs,
-    totalPeople: adults + babyChairs,
-    seatPreference: seat,
-    status:"waiting",
-    date:today(),
-    timestamp:Date.now()
+  db.collection("queues").add({
+    name: name,
+    phone: phone,
+    adults: parseInt(adults),
+    babyChairs: parseInt(babyChairs) || 0,
+    seatPreference: seat.value,
+    status: "waiting",
+    date: today(),
+    timestamp: Date.now()
+  }).then(()=>{
+    alert("提交成功，请等待通知");
   });
-
-  document.getElementById("result").innerHTML =
-    `<h2>您的号码: ${queueNumber}</h2>
-     <p>成人: ${adults} 人</p>
-     <p>宝宝椅: ${babyChairs} 张</p>
-     <p>座位偏好: ${seat}</p>
-     <p>请等待工作人员通知</p>`;
 }
 </script>
 
@@ -72,29 +58,25 @@ window.joinQueue = async function(){
 
 <h2>🍜 排队系统</h2>
 
-电话 (+60):<br>
+姓名 Name:<br>
+<input id="name"><br><br>
+
+电话 Phone (+60):<br>
 <input id="phone"><br><br>
 
-👨 成人人数 Adults:<br>
-<input type="number" id="adults" min="1"><br><br>
+成人数量 Adults:<br>
+<input type="number" id="adults"><br><br>
 
-👶 宝宝椅数量 Baby Chairs:<br>
-<input type="number" id="babyChairs" min="0" value="0"><br><br>
+宝宝椅 Baby Chairs:<br>
+<input type="number" id="babyChairs" value="0"><br><br>
 
-<h3>座位偏好 Seat Preference</h3>
+<h3>座位偏好</h3>
 
-<input type="radio" name="seat" value="室内 Indoor">
-室内 Indoor<br>
-
-<input type="radio" name="seat" value="室外 Outdoor">
-室外 Outdoor<br>
-
-<input type="radio" name="seat" value="随意最快 No Preference">
-随意最快 No Preference<br><br>
+<input type="radio" name="seat" value="室内 Indoor"> 室内<br>
+<input type="radio" name="seat" value="室外 Outdoor"> 室外<br>
+<input type="radio" name="seat" value="随意最快 No Preference"> 随意最快<br><br>
 
 <button onclick="joinQueue()">提交 Submit</button>
-
-<div id="result"></div>
 
 </body>
 </html>
