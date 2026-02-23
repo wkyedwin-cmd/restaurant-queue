@@ -28,17 +28,18 @@ function today(){
 window.joinQueue = async function(){
 
   const phone = document.getElementById("phone").value;
-  const people = parseInt(document.getElementById("people").value);
+  const adults = parseInt(document.getElementById("adults").value);
+  const babyChairs = parseInt(document.getElementById("babyChairs").value) || 0;
   const seatPreference = document.querySelector('input[name="seat"]:checked');
 
-  if(!phone || !people || !seatPreference){
+  if(!phone || !adults || !seatPreference){
     alert("请填写完整资料");
     return;
   }
 
   const seat = seatPreference.value;
 
-  // 计算今天总排队数量
+  // 计算今天排号数量
   const q = query(collection(db,"queues"), where("date","==",today()));
   const snapshot = await getDocs(q);
 
@@ -47,7 +48,9 @@ window.joinQueue = async function(){
   await addDoc(collection(db,"queues"),{
     queueNumber,
     phone,
-    people,
+    adults,
+    babyChairs,
+    totalPeople: adults + babyChairs,
     seatPreference: seat,
     status:"waiting",
     date:today(),
@@ -56,7 +59,9 @@ window.joinQueue = async function(){
 
   document.getElementById("result").innerHTML =
     `<h2>您的号码: ${queueNumber}</h2>
-     <h3>座位偏好: ${seat}</h3>
+     <p>成人: ${adults} 人</p>
+     <p>宝宝椅: ${babyChairs} 张</p>
+     <p>座位偏好: ${seat}</p>
      <p>请等待工作人员通知</p>`;
 }
 </script>
@@ -70,8 +75,11 @@ window.joinQueue = async function(){
 电话 (+60):<br>
 <input id="phone"><br><br>
 
-人数:<br>
-<input type="number" id="people"><br><br>
+👨 成人人数 Adults:<br>
+<input type="number" id="adults" min="1"><br><br>
+
+👶 宝宝椅数量 Baby Chairs:<br>
+<input type="number" id="babyChairs" min="0" value="0"><br><br>
 
 <h3>座位偏好 Seat Preference</h3>
 
