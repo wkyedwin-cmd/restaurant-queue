@@ -59,22 +59,36 @@ db.collection("queues").onSnapshot(snapshot=>{
       total++;
 
       const block = `
-      <div style="border:1px solid #ccc;margin:5px;padding:8px;">
-      <b>${data.name || "-"}</b><br>
+      <div style="border:1px solid #ccc;margin:5px;padding:10px;">
+      
+      <b style="font-size:18px;">${data.queueNumber || "-"}</b><br>
+      姓名: ${data.name || "-"}<br>
       电话: ${data.phone || "-"}<br>
+      日期: ${data.date || "-"}<br>
+      时间: ${data.time || "-"}<br>
       成人: ${data.adults || 0} | 宝宝椅: ${data.babyChairs || 0}<br>
       座位: ${data.seatPreference || "-"}<br>
-      桌号: ${data.tableNumber || "-"}<br><br>
+      桌号: ${data.tableNumber || "-"}<br>
+      状态: ${data.status || "-"}<br><br>
 
-      <button onclick="openWhatsApp('${data.phone}')">📱 WhatsApp</button>
+      <button onclick="openWhatsApp('${data.phone}')">
+      📱 WhatsApp
+      </button>
 
       ${data.status==="waiting" ?
-      `<button onclick="confirmAndAssign('${doc.id}')">确认到店+分桌</button>` : ""}
+      `<button onclick="assignTable('${doc.id}')">
+      确认到店+分桌
+      </button>` : ""}
 
       ${data.status==="seated" ?
-      `<button onclick="updateStatus('${doc.id}','completed')">入座完成</button>` : ""}
+      `<button onclick="updateStatus('${doc.id}','completed')">
+      入座完成
+      </button>` : ""}
 
-      <button onclick="updateStatus('${doc.id}','cancelled')">取消</button>
+      <button onclick="updateStatus('${doc.id}','cancelled')">
+      取消
+      </button>
+
       </div>
       `;
 
@@ -95,7 +109,7 @@ db.collection("queues").onSnapshot(snapshot=>{
 
 });
 
-function confirmAndAssign(id){
+function assignTable(id){
   const tableNumber = prompt("请输入桌号:");
   if(!tableNumber){
     alert("必须输入桌号");
