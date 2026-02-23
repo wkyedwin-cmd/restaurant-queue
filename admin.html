@@ -50,7 +50,7 @@ function assignTable(id){
   if(!tableNumber) return;
 
   db.collection("queues").doc(id).update({
-    status:"seated",
+    status:"confirmed table",
     tableNumber: tableNumber
   });
 }
@@ -78,12 +78,18 @@ function renderSection(title, list, container){
     <button onclick="openWhatsApp('${item.phone}')">WhatsApp</button>
 
     ${item.status==="waiting" ?
-    `<button onclick="assignTable('${item.id}')">确认到店+分桌</button>` : ""}
+    `<button onclick="assignTable('${item.id}')">
+    确认到店+分桌
+    </button>` : ""}
 
-    ${item.status==="seated" ?
-    `<button onclick="updateStatus('${item.id}','completed')">入座完成</button>` : ""}
+    ${item.status==="confirmed table" ?
+    `<button onclick="updateStatus('${item.id}','completed')">
+    入座完成
+    </button>` : ""}
 
-    <button onclick="updateStatus('${item.id}','cancelled')">取消</button>
+    <button onclick="updateStatus('${item.id}','cancelled')">
+    取消
+    </button>
 
     </div>
     `;
@@ -97,22 +103,38 @@ function loadData(){
   .onSnapshot(snapshot=>{
 
     let waiting = [];
-    let finished = [];
+    let confirmed = [];
+    let cancelled = [];
+    let completed = [];
 
     snapshot.forEach(doc=>{
       const data = {...doc.data(),id:doc.id};
 
-      if(data.status==="completed" || data.status==="cancelled"){
-        finished.push(data);
-      }else{
+      if(data.status==="waiting"){
         waiting.push(data);
+      }
+      else if(data.status==="confirmed table"){
+        confirmed.push(data);
+      }
+      else if(data.status==="cancelled"){
+        cancelled.push(data);
+      }
+      else if(data.status==="completed"){
+        completed.push(data);
       }
     });
 
+    // 上面两种按时间排序
     waiting.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+    confirmed.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
 
-    renderSection("🟡 待处理", waiting, document.getElementById("waiting"));
-    renderSection("🟢 已处理", finished, document.getElementById("done"));
+    const topSection = [...waiting, ...confirmed];
+
+    renderSection("🟡 Waiting + 🟢 Confirmed Table", topSection, document.getElementById("top"));
+
+    renderSection("🔻 Cancelled", cancelled, document.getElementById("cancel"));
+
+    renderSection("🔻 Completed", completed, document.getElementById("complete"));
 
   });
 }
@@ -132,9 +154,11 @@ function loadData(){
 
 <h2>后台管理系统</h2>
 
-<div id="waiting"></div>
+<div id="top"></div>
 <hr>
-<div id="done"></div>
+<div id="cancel"></div>
+<hr>
+<div id="complete"></div>
 
 </div>
 
