@@ -55,58 +55,14 @@ function assignTable(id){
   });
 }
 
-function getColor(status){
-  if(status==="waiting") return "#fff3cd";
-  if(status==="seated") return "#e2d9f3";
-  if(status==="completed") return "#d4edda";
-  if(status==="cancelled") return "#f8d7da";
-  return "white";
-}
+function renderSection(title, list, container){
 
-function loadData(){
-
-  db.collection("queues")
-  .where("date","==",today())
-  .onSnapshot(snapshot=>{
-
-    let active = [];
-    let finished = [];
-
-    snapshot.forEach(doc=>{
-      const data = {...doc.data(), id:doc.id};
-
-      if(data.status==="completed" || data.status==="cancelled"){
-        finished.push(data);
-      }else{
-        active.push(data);
-      }
-    });
-
-    // 等待最久在最上
-    active.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
-    finished.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
-
-    const finalList = [...active, ...finished];
-
-    render(finalList);
-
-  });
-}
-
-function render(list){
-
-  const container = document.getElementById("results");
-  container.innerHTML = "";
+  container.innerHTML = `<h3>${title}</h3>`;
 
   list.forEach(item=>{
 
     container.innerHTML += `
-    <div style="
-      border:1px solid #ccc;
-      margin:6px;
-      padding:10px;
-      background:${getColor(item.status)};
-    ">
+    <div style="border:1px solid #ccc;margin:6px;padding:10px;">
 
     📅 日期: ${item.date || "-"}<br>
     ⏰ 时间: ${item.time || "-"}<br>
@@ -119,7 +75,7 @@ function render(list){
     🏷 桌号: ${item.tableNumber || "-"}<br>
     📌 状态: ${item.status || "-"}<br><br>
 
-    <button onclick="openWhatsApp('${item.phone}')">📱 WhatsApp</button>
+    <button onclick="openWhatsApp('${item.phone}')">WhatsApp</button>
 
     ${item.status==="waiting" ?
     `<button onclick="assignTable('${item.id}')">确认到店+分桌</button>` : ""}
@@ -131,6 +87,33 @@ function render(list){
 
     </div>
     `;
+  });
+}
+
+function loadData(){
+
+  db.collection("queues")
+  .where("date","==",today())
+  .onSnapshot(snapshot=>{
+
+    let waiting = [];
+    let finished = [];
+
+    snapshot.forEach(doc=>{
+      const data = {...doc.data(),id:doc.id};
+
+      if(data.status==="completed" || data.status==="cancelled"){
+        finished.push(data);
+      }else{
+        waiting.push(data);
+      }
+    });
+
+    waiting.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+
+    renderSection("🟡 待处理", waiting, document.getElementById("waiting"));
+    renderSection("🟢 已处理", finished, document.getElementById("done"));
+
   });
 }
 
@@ -146,8 +129,13 @@ function render(list){
 </div>
 
 <div id="panel" style="display:none;">
-  <h2>后台管理系统</h2>
-  <div id="results"></div>
+
+<h2>后台管理系统</h2>
+
+<div id="waiting"></div>
+<hr>
+<div id="done"></div>
+
 </div>
 
 </body>
