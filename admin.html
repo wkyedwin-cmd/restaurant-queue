@@ -1,3 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
+  authDomain: "yunnans-1u.firebaseapp.com",
+  projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function today(){
+  return new Date().toISOString().split("T")[0];
+}
+
+// 🔐 登录密码
+window.checkPassword = function(){
+  const input = document.getElementById("password").value;
+  const correctPassword = "1234";
+
+  if(input === correctPassword){
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+  }else{
+    alert("密码错误 Wrong Password");
+  }
+}
+
 onSnapshot(collection(db,"queues"),(snapshot)=>{
 
   let total = 0;
@@ -6,6 +46,10 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
   let noPref = 0;
   let smallGroup = 0;
   let bigGroup = 0;
+
+  let waitingHTML = "<h3>🟡 Waiting</h3>";
+  let completedHTML = "<h3>🟢 Completed</h3>";
+  let cancelledHTML = "<h3>🔴 Cancelled</h3>";
 
   snapshot.forEach((d)=>{
     const data = d.data();
@@ -18,8 +62,26 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
       if(data.seatPreference?.includes("室外")) outdoor++;
       if(data.seatPreference?.includes("随意")) noPref++;
 
-      if(data.people <=4) smallGroup++;
-      if(data.people >=5) bigGroup++;
+      if(data.adults <=4) smallGroup++;
+      if(data.adults >=5) bigGroup++;
+
+      const block = `
+      <div style="border:1px solid #ccc;margin:5px;padding:8px;">
+      <b>${data.queueNumber}</b><br>
+      电话: ${data.phone}<br>
+      成人: ${data.adults} | 宝宝椅: ${data.babyChairs}<br>
+      座位: ${data.seatPreference}<br><br>
+
+      <button onclick="complete('${d.id}')">完成</button>
+      <button onclick="cancel('${d.id}')">取消</button>
+      <a target="_blank" href="https://wa.me/${data.phone.replace('+','')}">
+      WhatsApp</a>
+      </div>
+      `;
+
+      if(data.status === "waiting") waitingHTML += block;
+      if(data.status === "completed") completedHTML += block;
+      if(data.status === "cancelled") cancelledHTML += block;
     }
   });
 
@@ -32,4 +94,25 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
   1–4人: ${smallGroup}<br>
   5人以上: ${bigGroup}
   `;
+
+  document.getElementById("waiting").innerHTML = waitingHTML;
+  document.getElementById("completed").innerHTML = completedHTML;
+  document.getElementById("cancelled").innerHTML = cancelledHTML;
+
 });
+
+window.complete = async function(id){
+  await updateDoc(doc(db,"queues",id),{status:"completed"});
+}
+
+window.cancel = async function(id){
+  await updateDoc(doc(db,"queues",id),{status:"cancelled"});
+}
+</script>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Admin Login</h2>
+  <input type="password" id="password" placeholder="Enter Pas
