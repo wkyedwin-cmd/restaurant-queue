@@ -34,7 +34,7 @@ function checkPassword(){
   }
 }
 
-// 确认到店 → 必须输入桌号
+// 确认到店 + 输入桌号
 function confirmAndAssign(id){
   const tableNumber = prompt("请输入桌号 (Table Number):");
 
@@ -61,10 +61,15 @@ function cancel(id){
   });
 }
 
+// 打开 WhatsApp
+function openWhatsApp(phone){
+  const cleanPhone = phone.replace("+","");
+  window.open("https://wa.me/"+cleanPhone,"_blank");
+}
+
 db.collection("queues").onSnapshot(snapshot=>{
 
   let waitingHTML = "<h3>🟡 Waiting</h3>";
-  let confirmedHTML = "<h3>🔵 Confirmed</h3>";
   let seatedHTML = "<h3>🟣 Seated</h3>";
   let completedHTML = "<h3>🟢 Completed</h3>";
   let cancelledHTML = "<h3>🔴 Cancelled</h3>";
@@ -85,18 +90,25 @@ db.collection("queues").onSnapshot(snapshot=>{
       座位: ${data.seatPreference || ""}<br>
       桌号: ${data.tableNumber || "-"}<br><br>
 
+      <button onclick="openWhatsApp('${data.phone}')">
+      📱 WhatsApp
+      </button>
+
       ${data.status==="waiting" ?
-      `<button onclick="confirmAndAssign('${doc.id}')">确认到店+分桌</button>` : ""}
+      `<button onclick="confirmAndAssign('${doc.id}')">
+      确认到店+分桌
+      </button>` : ""}
 
       ${data.status==="seated" ?
-      `<button onclick="complete('${doc.id}')">入座完成</button>` : ""}
+      `<button onclick="complete('${doc.id}')">
+      入座完成
+      </button>` : ""}
 
       <button onclick="cancel('${doc.id}')">取消</button>
       </div>
       `;
 
       if(data.status==="waiting") waitingHTML+=block;
-      if(data.status==="confirmed") confirmedHTML+=block;
       if(data.status==="seated") seatedHTML+=block;
       if(data.status==="completed") completedHTML+=block;
       if(data.status==="cancelled") cancelledHTML+=block;
@@ -107,7 +119,6 @@ db.collection("queues").onSnapshot(snapshot=>{
     "今日总排队: "+total;
 
   document.getElementById("waiting").innerHTML = waitingHTML;
-  document.getElementById("confirmed").innerHTML = confirmedHTML;
   document.getElementById("seated").innerHTML = seatedHTML;
   document.getElementById("completed").innerHTML = completedHTML;
   document.getElementById("cancelled").innerHTML = cancelledHTML;
@@ -130,8 +141,6 @@ db.collection("queues").onSnapshot(snapshot=>{
 <div id="stats"></div>
 
 <div id="waiting"></div>
-<hr>
-<div id="confirmed"></div>
 <hr>
 <div id="seated"></div>
 <hr>
