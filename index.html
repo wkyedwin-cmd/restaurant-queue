@@ -24,7 +24,11 @@ function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-function joinQueue(){
+function currentTime(){
+  return new Date().toLocaleTimeString();
+}
+
+async function joinQueue(){
 
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
@@ -37,13 +41,19 @@ function joinQueue(){
     return;
   }
 
-  // 电话不能0开头
   if(phone.startsWith("0")){
-    alert("电话号码不要以 0 开头，请去掉 0");
+    alert("电话号码不要以 0 开头");
     return;
   }
 
+  const snapshot = await db.collection("queues")
+    .where("date","==",today())
+    .get();
+
+  const queueNumber = "Q" + String(snapshot.size+1).padStart(3,"0");
+
   db.collection("queues").add({
+    queueNumber: queueNumber,
     name: name,
     phone: phone,
     adults: parseInt(adults),
@@ -51,10 +61,11 @@ function joinQueue(){
     seatPreference: seat.value,
     status: "waiting",
     date: today(),
+    time: currentTime(),
     timestamp: Date.now()
-  }).then(()=>{
-    alert("提交成功，请等待通知");
   });
+
+  alert("提交成功！您的号码是 " + queueNumber);
 }
 </script>
 
@@ -64,30 +75,25 @@ function joinQueue(){
 
 <h2>🍜 排队系统</h2>
 
-姓名 Name:<br>
+姓名:<br>
 <input id="name"><br><br>
 
-电话 Phone (+60):<br>
-<input id="phone" placeholder="例如: 123456789">
-<br>
-<small style="color:red;">
-⚠ 不要输入 0 开头
-</small>
-<br><br>
+电话:<br>
+<input id="phone"><br><br>
 
-成人数量 Adults:<br>
-<input type="number" id="adults" min="1"><br><br>
+成人数量:<br>
+<input type="number" id="adults"><br><br>
 
-宝宝椅数量 Baby Chairs:<br>
-<input type="number" id="babyChairs" min="0" value="0"><br><br>
+宝宝椅数量:<br>
+<input type="number" id="babyChairs" value="0"><br><br>
 
-<h3>座位偏好</h3>
+<h3>座位选择</h3>
 
 <input type="radio" name="seat" value="室内 Indoor"> 室内<br>
 <input type="radio" name="seat" value="室外 Outdoor"> 室外<br>
 <input type="radio" name="seat" value="随意最快 No Preference"> 随意最快<br><br>
 
-<button onclick="joinQueue()">提交 Submit</button>
+<button onclick="joinQueue()">提交</button>
 
 </body>
 </html>
