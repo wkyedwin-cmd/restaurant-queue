@@ -6,7 +6,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, where } 
+import { getFirestore, collection, addDoc, getDocs, query, where } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -29,39 +29,36 @@ window.joinQueue = async function(){
 
   const phone = document.getElementById("phone").value;
   const people = parseInt(document.getElementById("people").value);
-  const baby = parseInt(document.getElementById("baby").value);
+  const seatPreference = document.querySelector('input[name="seat"]:checked');
 
-  if(!phone || !people){
+  if(!phone || !people || !seatPreference){
     alert("请填写完整资料");
     return;
   }
 
+  const seat = seatPreference.value;
+
+  // 计算今天总排队数量
+  const q = query(collection(db,"queues"), where("date","==",today()));
+  const snapshot = await getDocs(q);
+
+  const queueNumber = "Q" + String(snapshot.size+1).padStart(3,'0');
+
   await addDoc(collection(db,"queues"),{
+    queueNumber,
     phone,
     people,
-    babyChair: baby || 0,
+    seatPreference: seat,
     status:"waiting",
-    tableNumber:"",
     date:today(),
     timestamp:Date.now()
   });
 
   document.getElementById("result").innerHTML =
-    "提交成功，请等待通知。";
+    `<h2>您的号码: ${queueNumber}</h2>
+     <h3>座位偏好: ${seat}</h3>
+     <p>请等待工作人员通知</p>`;
 }
-
-// 🔥 实时监听等待人数
-onSnapshot(collection(db,"queues"),(snapshot)=>{
-
-  const waiting = snapshot.docs.filter(d=>
-    d.data().date===today() &&
-    d.data().status==="waiting"
-  );
-
-  document.getElementById("waitingCount").innerHTML =
-    "当前等待人数: " + waiting.length;
-
-});
 </script>
 
 </head>
@@ -76,12 +73,18 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
 人数:<br>
 <input type="number" id="people"><br><br>
 
-宝宝椅:<br>
-<input type="number" id="baby"><br><br>
+<h3>座位偏好 Seat Preference</h3>
 
-<button onclick="joinQueue()">提交</button>
+<input type="radio" name="seat" value="室内 Indoor">
+室内 Indoor<br>
 
-<h3 id="waitingCount"></h3>
+<input type="radio" name="seat" value="室外 Outdoor">
+室外 Outdoor<br>
+
+<input type="radio" name="seat" value="随意最快 No Preference">
+随意最快 No Preference<br><br>
+
+<button onclick="joinQueue()">提交 Submit</button>
 
 <div id="result"></div>
 
