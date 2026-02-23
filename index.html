@@ -1,9 +1,64 @@
-电话 Phone (+60):<br>
-<input id="phone" type="text" placeholder="例如: 123456789">
-<br>
-<small style="color:red;">
-⚠ 请不要输入 0 开头  
-例如：0123456789 ❌  
-应填写：123456789 ✔
-</small>
-<br><br>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Queue System</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
+  authDomain: "yunnans-1u.firebaseapp.com",
+  projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function today(){
+  return new Date().toISOString().split("T")[0];
+}
+
+function joinQueue(){
+
+  const phone = document.getElementById("phone").value;
+  const adults = document.getElementById("adults").value;
+
+  if(!phone || !adults){
+    alert("请填写完整资料");
+    return;
+  }
+
+  db.collection("queues").add({
+    phone: phone,
+    adults: parseInt(adults),
+    status: "waiting",
+    date: today(),
+    timestamp: Date.now()
+  }).then(()=>{
+    alert("提交成功！");
+  });
+}
+</script>
+
+</head>
+
+<body>
+
+<h2>🍜 排队系统</h2>
+
+电话:<br>
+<input id="phone"><br><br>
+
+人数:<br>
+<input type="number" id="adults"><br><br>
+
+<button onclick="joinQueue()">提交</button>
+
+</body>
+</html>
