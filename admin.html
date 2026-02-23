@@ -20,8 +20,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let allData = [];
-
 function today(){
   return new Date().toISOString().split("T")[0];
 }
@@ -58,6 +56,14 @@ function assignTable(id){
   });
 }
 
+function getColor(status){
+  if(status==="waiting") return "#fff3cd";     // 黄色
+  if(status==="seated") return "#e2d9f3";      // 紫色
+  if(status==="completed") return "#d4edda";   // 绿色
+  if(status==="cancelled") return "#f8d7da";   // 红色
+  return "white";
+}
+
 function renderData(dataList){
 
   const container = document.getElementById("results");
@@ -66,14 +72,19 @@ function renderData(dataList){
   dataList.forEach(item=>{
 
     const block = `
-    <div style="border:1px solid #ccc;margin:5px;padding:10px;">
+    <div style="
+      border:1px solid #ccc;
+      margin:6px;
+      padding:10px;
+      background-color:${getColor(item.status)};
+    ">
 
-    ⏰ 时间: ${item.time || "-"}<br>
     📅 日期: ${item.date || "-"}<br>
+    ⏰ 时间: ${item.time || "-"}<br>
     🆔 排号: <b>${item.queueNumber || "-"}</b><br>
     👤 姓名: ${item.name || "-"}<br>
     📞 电话: ${item.phone || "-"}<br>
-    👨 成人人数: ${item.adults || 0}<br>
+    👨 成人: ${item.adults || 0}<br>
     👶 宝宝椅: ${item.babyChairs || 0}<br>
     🪑 座位: ${item.seatPreference || "-"}<br>
     🏷 桌号: ${item.tableNumber || "-"}<br>
@@ -109,13 +120,13 @@ db.collection("queues")
   .orderBy("timestamp","asc")
   .onSnapshot(snapshot=>{
 
-    allData = [];
+    const data = [];
 
     snapshot.forEach(doc=>{
-      allData.push({...doc.data(),id:doc.id});
+      data.push({...doc.data(),id:doc.id});
     });
 
-    renderData(allData);
+    renderData(data);
 
 });
 </script>
