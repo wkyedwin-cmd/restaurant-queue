@@ -1,30 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
+  authDomain: "yunnans-1u.firebaseapp.com",
+  projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function today(){
+  return new Date().toISOString().split("T")[0];
+}
+
+function checkPassword(){
+  const input = document.getElementById("password").value;
+  if(input === "1234"){
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+    loadData();
+  }else{
+    alert("密码错误");
+  }
+}
+
+function openWhatsApp(phone){
+  if(!phone) return;
+  const clean = phone.replace("+","");
+  window.open("https://wa.me/"+clean,"_blank");
+}
+
+function updateStatus(id,status){
+  db.collection("queues").doc(id).update({status:status});
+}
+
+function assignTable(id){
+  const tableNumber = prompt("请输入桌号:");
+  if(!tableNumber) return;
+
+  db.collection("queues").doc(id).update({
+    status:"seated",
+    tableNumber: tableNumber
+  });
+}
+
+function getColor(status){
+  if(status==="waiting") return "#fff3cd";
+  if(status==="seated") return "#e2d9f3";
+  if(status==="completed") return "#d4edda";
+  if(status==="cancelled") return "#f8d7da";
+  return "white";
+}
+
+function loadData(){
+
+  db.collection("queues")
+  .where("date","==",today())
+  .onSnapshot(snapshot=>{
+
+    let active = [];
+    let finished = [];
+
+    snapshot.forEach(doc=>{
+      const data = {...doc.data(), id:doc.id};
+
+      if(data.status==="completed" || data.status==="cancelled"){
+        finished.push(data);
+      }else{
+        active.push(data);
+      }
+    });
+
+    // 等待最久在最上
+    active.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+    finished.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+
+    const finalList = [...active, ...finished];
+
+    render(finalList);
+
+  });
+}
+
 function render(list){
 
   const container = document.getElementById("results");
   container.innerHTML = "";
 
-  // 分组
-  const active = [];
-  const finished = [];
-
   list.forEach(item=>{
-    if(item.status==="completed" || item.status==="cancelled"){
-      finished.push(item);
-    }else{
-      active.push(item);
-    }
-  });
-
-  // 未处理按时间排序（最早在上）
-  active.sort((a,b)=> (a.timestamp||0)-(b.timestamp||0));
-
-  // 已处理也按时间排序（可选）
-  finished.sort((a,b)=> (a.timestamp||0)-(b.timestamp||0));
-
-  const finalList = [...active, ...finished];
-
-  finalList.forEach(item=>{
 
     container.innerHTML += `
     <div style="
@@ -45,26 +119,36 @@ function render(list){
     🏷 桌号: ${item.tableNumber || "-"}<br>
     📌 状态: ${item.status || "-"}<br><br>
 
-    <button onclick="openWhatsApp('${item.phone}')">
-    📱 WhatsApp
-    </button>
+    <button onclick="openWhatsApp('${item.phone}')">📱 WhatsApp</button>
 
     ${item.status==="waiting" ?
-    `<button onclick="assignTable('${item.id}')">
-    确认到店+分桌
-    </button>` : ""}
+    `<button onclick="assignTable('${item.id}')">确认到店+分桌</button>` : ""}
 
     ${item.status==="seated" ?
-    `<button onclick="updateStatus('${item.id}','completed')">
-    入座完成
-    </button>` : ""}
+    `<button onclick="updateStatus('${item.id}','completed')">入座完成</button>` : ""}
 
-    <button onclick="updateStatus('${item.id}','cancelled')">
-    取消
-    </button>
+    <button onclick="updateStatus('${item.id}','cancelled')">取消</button>
 
     </div>
     `;
   });
 }
+
 </script>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Admin Login</h2>
+  <input type="password" id="password">
+  <button onclick="checkPassword()">Login</button>
+</div>
+
+<div id="panel" style="display:none;">
+  <h2>后台管理系统</h2>
+  <div id="results"></div>
+</div>
+
+</body>
+</html>
