@@ -26,6 +26,7 @@ function today(){
 
 function checkPassword(){
   const input = document.getElementById("password").value;
+
   if(input === "1234"){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
@@ -40,7 +41,9 @@ function openWhatsApp(phone){
 }
 
 function updateStatus(id,status){
-  db.collection("queues").doc(id).update({status:status});
+  db.collection("queues").doc(id).update({
+    status:status
+  });
 }
 
 function assignTable(id){
@@ -57,26 +60,26 @@ function assignTable(id){
 }
 
 function getColor(status){
-  if(status==="waiting") return "#fff3cd";     // 黄色
-  if(status==="seated") return "#e2d9f3";      // 紫色
-  if(status==="completed") return "#d4edda";   // 绿色
-  if(status==="cancelled") return "#f8d7da";   // 红色
+  if(status==="waiting") return "#fff3cd";
+  if(status==="seated") return "#e2d9f3";
+  if(status==="completed") return "#d4edda";
+  if(status==="cancelled") return "#f8d7da";
   return "white";
 }
 
-function renderData(dataList){
+function renderData(list){
 
   const container = document.getElementById("results");
   container.innerHTML = "";
 
-  dataList.forEach(item=>{
+  list.forEach(item=>{
 
-    const block = `
+    container.innerHTML += `
     <div style="
       border:1px solid #ccc;
       margin:6px;
       padding:10px;
-      background-color:${getColor(item.status)};
+      background:${getColor(item.status)};
     ">
 
     📅 日期: ${item.date || "-"}<br>
@@ -110,8 +113,6 @@ function renderData(dataList){
 
     </div>
     `;
-
-    container.innerHTML += block;
   });
 }
 
@@ -128,7 +129,7 @@ db.collection("queues")
 
     renderData(data);
 
-});
+  });
 </script>
 </head>
 
