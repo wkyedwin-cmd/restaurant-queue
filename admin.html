@@ -20,6 +20,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+let allData = [];
+
 function today(){
   return new Date().toISOString().split("T")[0];
 }
@@ -34,80 +36,14 @@ function checkPassword(){
   }
 }
 
-function updateStatus(id,status){
-  db.collection("queues").doc(id).update({status:status});
-}
-
 function openWhatsApp(phone){
   const clean = phone.replace("+","");
   window.open("https://wa.me/"+clean,"_blank");
 }
 
-db.collection("queues").onSnapshot(snapshot=>{
-
-  let waitingHTML = "<h3>🟡 Waiting</h3>";
-  let seatedHTML = "<h3>🟣 Seated</h3>";
-  let completedHTML = "<h3>🟢 Completed</h3>";
-  let cancelledHTML = "<h3>🔴 Cancelled</h3>";
-
-  let total = 0;
-
-  snapshot.forEach(doc=>{
-    const data = doc.data();
-
-    if(data.date === today()){
-      total++;
-
-      const block = `
-      <div style="border:1px solid #ccc;margin:5px;padding:10px;">
-      
-      <b style="font-size:18px;">${data.queueNumber || "-"}</b><br>
-      姓名: ${data.name || "-"}<br>
-      电话: ${data.phone || "-"}<br>
-      日期: ${data.date || "-"}<br>
-      时间: ${data.time || "-"}<br>
-      成人: ${data.adults || 0} | 宝宝椅: ${data.babyChairs || 0}<br>
-      座位: ${data.seatPreference || "-"}<br>
-      桌号: ${data.tableNumber || "-"}<br>
-      状态: ${data.status || "-"}<br><br>
-
-      <button onclick="openWhatsApp('${data.phone}')">
-      📱 WhatsApp
-      </button>
-
-      ${data.status==="waiting" ?
-      `<button onclick="assignTable('${doc.id}')">
-      确认到店+分桌
-      </button>` : ""}
-
-      ${data.status==="seated" ?
-      `<button onclick="updateStatus('${doc.id}','completed')">
-      入座完成
-      </button>` : ""}
-
-      <button onclick="updateStatus('${doc.id}','cancelled')">
-      取消
-      </button>
-
-      </div>
-      `;
-
-      if(data.status==="waiting") waitingHTML+=block;
-      if(data.status==="seated") seatedHTML+=block;
-      if(data.status==="completed") completedHTML+=block;
-      if(data.status==="cancelled") cancelledHTML+=block;
-    }
-  });
-
-  document.getElementById("stats").innerHTML =
-    "今日总排队: "+total;
-
-  document.getElementById("waiting").innerHTML = waitingHTML;
-  document.getElementById("seated").innerHTML = seatedHTML;
-  document.getElementById("completed").innerHTML = completedHTML;
-  document.getElementById("cancelled").innerHTML = cancelledHTML;
-
-});
+function updateStatus(id,status){
+  db.collection("queues").doc(id).update({status:status});
+}
 
 function assignTable(id){
   const tableNumber = prompt("请输入桌号:");
@@ -121,6 +57,73 @@ function assignTable(id){
     tableNumber: tableNumber
   });
 }
+
+function renderData(dataList){
+
+  let html = "";
+
+  dataList.forEach(item=>{
+
+    html += `
+    <div style="border:1px solid #ccc;margin:5px;padding:10px;">
+    <b>${item.queueNumber || "-"}</b><br>
+    姓名: ${item.name || "-"}<br>
+    电话: ${item.phone || "-"}<br>
+    日期: ${item.date || "-"}<br>
+    时间: ${item.time || "-"}<br>
+    成人: ${item.adults || 0} | 宝宝椅: ${item.babyChairs || 0}<br>
+    座位: ${item.seatPreference || "-"}<br>
+    桌号: ${item.tableNumber || "-"}<br>
+    状态: ${item.status || "-"}<br><br>
+
+    <button onclick="openWhatsApp('${item.phone}')">📱 WhatsApp</button>
+
+    ${item.status==="waiting" ?
+    `<button onclick="assignTable('${item.id}')">确认到店+分桌</button>` : ""}
+
+    ${item.status==="seated" ?
+    `<button onclick="updateStatus('${item.id}','completed')">入座完成</button>` : ""}
+
+    <button onclick="updateStatus('${item.id}','cancelled')">取消</button>
+
+    </div>
+    `;
+  });
+
+  document.getElementById("results").innerHTML = html;
+}
+
+function search(){
+
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+
+  const filtered = allData.filter(item=>{
+
+    return (
+      (item.name && item.name.toLowerCase().includes(keyword)) ||
+      (item.phone && item.phone.includes(keyword)) ||
+      (item.queueNumber && item.queueNumber.toLowerCase().includes(keyword))
+    );
+
+  });
+
+  renderData(filtered);
+}
+
+db.collection("queues").onSnapshot(snapshot=>{
+
+  allData = [];
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(data.date === today()){
+      allData.push({...data,id:doc.id});
+    }
+  });
+
+  renderData(allData);
+
+});
 </script>
 </head>
 
@@ -135,15 +138,14 @@ function assignTable(id){
 <div id="panel" style="display:none;">
 
 <h2>后台管理系统</h2>
-<div id="stats"></div>
 
-<div id="waiting"></div>
+<input type="text" id="searchInput" placeholder="搜索 姓名 / 电话 / 排号">
+<button onclick="search()">🔍 搜索</button>
+<button onclick="renderData(allData)">显示全部</button>
+
 <hr>
-<div id="seated"></div>
-<hr>
-<div id="completed"></div>
-<hr>
-<div id="cancelled"></div>
+
+<div id="results"></div>
 
 </div>
 
