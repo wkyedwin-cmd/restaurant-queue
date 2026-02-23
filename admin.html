@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <title>Admin Panel</title>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+<script>
 const firebaseConfig = {
   apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
   authDomain: "yunnans-1u.firebaseapp.com",
@@ -18,26 +17,28 @@ const firebaseConfig = {
   appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-window.checkPassword = function(){
+function checkPassword(){
   const input = document.getElementById("password").value;
-  const correctPassword = "1234";
-
-  if(input === correctPassword){
+  if(input === "1234"){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
   }else{
     alert("密码错误");
   }
-};
+}
 
-onSnapshot(collection(db,"queues"),(snapshot)=>{
+function updateStatus(id,status){
+  db.collection("queues").doc(id).update({status:status});
+}
+
+db.collection("queues").onSnapshot(snapshot=>{
 
   let waitingHTML = "<h3>🟡 Waiting</h3>";
   let confirmedHTML = "<h3>🔵 Confirmed</h3>";
@@ -46,8 +47,8 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
 
   let total = 0;
 
-  snapshot.forEach((d)=>{
-    const data = d.data();
+  snapshot.forEach(doc=>{
+    const data = doc.data();
 
     if(data.date === today()){
       total++;
@@ -56,11 +57,60 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
       <div style="border:1px solid #ccc;margin:5px;padding:8px;">
       <b>${data.queueNumber}</b><br>
       电话: ${data.phone}<br>
-      成人: ${data.adults} | 宝宝椅: ${data.babyChairs}<br>
+      成人: ${data.adults || 0} | 宝宝椅: ${data.babyChairs || 0}<br>
       座位: ${data.seatPreference}<br><br>
 
-      ${data.status === "waiting" ? 
-      `<button onclick="confirm('${d.id}')">确认到店</button>` : ""}
+      ${data.status==="waiting" ? 
+      `<button onclick="updateStatus('${doc.id}','confirmed')">确认到店</button>` : ""}
 
-      ${data.status === "confirmed" ? 
-      `<button onclick="complete('${d
+      ${data.status==="confirmed" ? 
+      `<button onclick="updateStatus('${doc.id}','completed')">入座完成</button>` : ""}
+
+      <button onclick="updateStatus('${doc.id}','cancelled')">取消</button>
+      </div>
+      `;
+
+      if(data.status==="waiting") waitingHTML+=block;
+      if(data.status==="confirmed") confirmedHTML+=block;
+      if(data.status==="completed") completedHTML+=block;
+      if(data.status==="cancelled") cancelledHTML+=block;
+    }
+  });
+
+  document.getElementById("stats").innerHTML =
+    "今日总排队: "+total;
+
+  document.getElementById("waiting").innerHTML = waitingHTML;
+  document.getElementById("confirmed").innerHTML = confirmedHTML;
+  document.getElementById("completed").innerHTML = completedHTML;
+  document.getElementById("cancelled").innerHTML = cancelledHTML;
+
+});
+</script>
+</head>
+
+<body>
+
+<div id="login">
+  <h2>Admin Login</h2>
+  <input type="password" id="password">
+  <button onclick="checkPassword()">Login</button>
+</div>
+
+<div id="panel" style="display:none;">
+
+<h2>后台管理系统</h2>
+<div id="stats"></div>
+
+<div id="waiting"></div>
+<hr>
+<div id="confirmed"></div>
+<hr>
+<div id="completed"></div>
+<hr>
+<div id="cancelled"></div>
+
+</div>
+
+</body>
+</html>
