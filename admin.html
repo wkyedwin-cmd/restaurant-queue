@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Admin Login</title>
+<title>Admin Panel</title>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -25,26 +25,23 @@ function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-window.checkPassword = function(){
-  const input = document.getElementById("password").value;
-
-  // 🔐 你可以改这里的密码
-  const correctPassword = "0606";
-
-  if(input === correctPassword){
-    document.getElementById("login").style.display="none";
-    document.getElementById("panel").style.display="block";
-  }else{
-    alert("密码错误 / Wrong password");
-  }
-}
+let stats = {waiting:0,completed:0,cancelled:0};
 
 onSnapshot(collection(db,"queues"),(snapshot)=>{
-  let html="<h2>后台管理</h2>";
+
+  stats = {waiting:0,completed:0,cancelled:0};
+
+  let waitingHTML = "<h3>🟡 Waiting</h3>";
+  let completedHTML = "<h3>🟢 Completed</h3>";
+  let cancelledHTML = "<h3>🔴 Cancelled</h3>";
+
   snapshot.forEach((d)=>{
-    const data=d.data();
-    if(data.date===today() && data.status==="waiting"){
-      html+=`
+    const data = d.data();
+
+    if(data.date === today()){
+      stats[data.status]++;
+
+      const block = `
       <div style="border:1px solid #ccc;margin:5px;padding:8px;">
       ${data.queueNumber} | ${data.phone} | ${data.people}人
       <br>
@@ -54,16 +51,30 @@ onSnapshot(collection(db,"queues"),(snapshot)=>{
       WhatsApp</a>
       </div>
       `;
+
+      if(data.status === "waiting") waitingHTML += block;
+      if(data.status === "completed") completedHTML += block;
+      if(data.status === "cancelled") cancelledHTML += block;
     }
   });
-  document.getElementById("list").innerHTML=html;
+
+  document.getElementById("stats").innerHTML =
+    `今日统计：
+    🟡等待: ${stats.waiting} |
+    🟢完成: ${stats.completed} |
+    🔴取消: ${stats.cancelled}`;
+
+  document.getElementById("waiting").innerHTML = waitingHTML;
+  document.getElementById("completed").innerHTML = completedHTML;
+  document.getElementById("cancelled").innerHTML = cancelledHTML;
+
 });
 
-window.complete=async function(id){
+window.complete = async function(id){
   await updateDoc(doc(db,"queues",id),{status:"completed"});
 }
 
-window.cancel=async function(id){
+window.cancel = async function(id){
   await updateDoc(doc(db,"queues",id),{status:"cancelled"});
 }
 </script>
@@ -71,16 +82,15 @@ window.cancel=async function(id){
 
 <body>
 
-<div id="login">
-  <h2>Admin Login</h2>
-  <input type="password" id="password" placeholder="Enter Password">
-  <button onclick="checkPassword()">Login</button>
-</div>
+<h2>后台管理系统</h2>
 
-<div id="panel" style="display:none;">
-  <div id="list"></div>
-</div>
+<div id="stats" style="font-weight:bold;margin-bottom:15px;"></div>
+
+<div id="waiting"></div>
+<hr>
+<div id="completed"></div>
+<hr>
+<div id="cancelled"></div>
 
 </body>
 </html>
-
