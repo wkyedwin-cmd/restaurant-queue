@@ -60,29 +60,24 @@ function assignTable(id){
 
 function renderData(dataList){
 
-  let waiting = document.getElementById("waiting");
-  let seated = document.getElementById("seated");
-  let completed = document.getElementById("completed");
-  let cancelled = document.getElementById("cancelled");
-
-  waiting.innerHTML = "<h3>🟡 Waiting</h3>";
-  seated.innerHTML = "<h3>🟣 Seated</h3>";
-  completed.innerHTML = "<h3>🟢 Completed</h3>";
-  cancelled.innerHTML = "<h3>🔴 Cancelled</h3>";
+  const container = document.getElementById("results");
+  container.innerHTML = "";
 
   dataList.forEach(item=>{
 
     const block = `
     <div style="border:1px solid #ccc;margin:5px;padding:10px;">
-    <b>${item.queueNumber || "-"}</b><br>
-    姓名: ${item.name || "-"}<br>
-    电话: ${item.phone || "-"}<br>
-    日期: ${item.date || "-"}<br>
-    时间: ${item.time || "-"}<br>
-    成人: ${item.adults || 0} | 宝宝椅: ${item.babyChairs || 0}<br>
-    座位: ${item.seatPreference || "-"}<br>
-    桌号: ${item.tableNumber || "-"}<br>
-    状态: ${item.status || "-"}<br><br>
+
+    ⏰ 时间: ${item.time || "-"}<br>
+    📅 日期: ${item.date || "-"}<br>
+    🆔 排号: <b>${item.queueNumber || "-"}</b><br>
+    👤 姓名: ${item.name || "-"}<br>
+    📞 电话: ${item.phone || "-"}<br>
+    👨 成人人数: ${item.adults || 0}<br>
+    👶 宝宝椅: ${item.babyChairs || 0}<br>
+    🪑 座位: ${item.seatPreference || "-"}<br>
+    🏷 桌号: ${item.tableNumber || "-"}<br>
+    📌 状态: ${item.status || "-"}<br><br>
 
     <button onclick="openWhatsApp('${item.phone}')">
     📱 WhatsApp
@@ -101,30 +96,12 @@ function renderData(dataList){
     <button onclick="updateStatus('${item.id}','cancelled')">
     取消
     </button>
+
     </div>
     `;
 
-    if(item.status==="waiting") waiting.innerHTML += block;
-    if(item.status==="seated") seated.innerHTML += block;
-    if(item.status==="completed") completed.innerHTML += block;
-    if(item.status==="cancelled") cancelled.innerHTML += block;
-
+    container.innerHTML += block;
   });
-}
-
-function search(){
-
-  const keyword = document.getElementById("searchInput").value.toLowerCase();
-
-  const filtered = allData.filter(item=>{
-    return (
-      (item.name && item.name.toLowerCase().includes(keyword)) ||
-      (item.phone && item.phone.includes(keyword)) ||
-      (item.queueNumber && item.queueNumber.toLowerCase().includes(keyword))
-    );
-  });
-
-  renderData(filtered);
 }
 
 db.collection("queues")
@@ -156,19 +133,7 @@ db.collection("queues")
 
 <h2>后台管理系统</h2>
 
-<input type="text" id="searchInput" placeholder="搜索 姓名 / 电话 / 排号">
-<button onclick="search()">🔍 搜索</button>
-<button onclick="renderData(allData)">显示全部</button>
-
-<hr>
-
-<div id="waiting"></div>
-<hr>
-<div id="seated"></div>
-<hr>
-<div id="completed"></div>
-<hr>
-<div id="cancelled"></div>
+<div id="results"></div>
 
 </div>
 
