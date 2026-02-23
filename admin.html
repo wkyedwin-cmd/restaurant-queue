@@ -34,14 +34,38 @@ function checkPassword(){
   }
 }
 
-function updateStatus(id,status){
-  db.collection("queues").doc(id).update({status:status});
+// 确认到店 → 必须输入桌号
+function confirmAndAssign(id){
+  const tableNumber = prompt("请输入桌号 (Table Number):");
+
+  if(!tableNumber){
+    alert("必须输入桌号！");
+    return;
+  }
+
+  db.collection("queues").doc(id).update({
+    status: "seated",
+    tableNumber: tableNumber
+  });
+}
+
+function complete(id){
+  db.collection("queues").doc(id).update({
+    status: "completed"
+  });
+}
+
+function cancel(id){
+  db.collection("queues").doc(id).update({
+    status: "cancelled"
+  });
 }
 
 db.collection("queues").onSnapshot(snapshot=>{
 
   let waitingHTML = "<h3>🟡 Waiting</h3>";
   let confirmedHTML = "<h3>🔵 Confirmed</h3>";
+  let seatedHTML = "<h3>🟣 Seated</h3>";
   let completedHTML = "<h3>🟢 Completed</h3>";
   let cancelledHTML = "<h3>🔴 Cancelled</h3>";
 
@@ -58,20 +82,22 @@ db.collection("queues").onSnapshot(snapshot=>{
       <b>${data.queueNumber}</b><br>
       电话: ${data.phone}<br>
       成人: ${data.adults || 0} | 宝宝椅: ${data.babyChairs || 0}<br>
-      座位: ${data.seatPreference}<br><br>
+      座位: ${data.seatPreference || ""}<br>
+      桌号: ${data.tableNumber || "-"}<br><br>
 
-      ${data.status==="waiting" ? 
-      `<button onclick="updateStatus('${doc.id}','confirmed')">确认到店</button>` : ""}
+      ${data.status==="waiting" ?
+      `<button onclick="confirmAndAssign('${doc.id}')">确认到店+分桌</button>` : ""}
 
-      ${data.status==="confirmed" ? 
-      `<button onclick="updateStatus('${doc.id}','completed')">入座完成</button>` : ""}
+      ${data.status==="seated" ?
+      `<button onclick="complete('${doc.id}')">入座完成</button>` : ""}
 
-      <button onclick="updateStatus('${doc.id}','cancelled')">取消</button>
+      <button onclick="cancel('${doc.id}')">取消</button>
       </div>
       `;
 
       if(data.status==="waiting") waitingHTML+=block;
       if(data.status==="confirmed") confirmedHTML+=block;
+      if(data.status==="seated") seatedHTML+=block;
       if(data.status==="completed") completedHTML+=block;
       if(data.status==="cancelled") cancelledHTML+=block;
     }
@@ -82,6 +108,7 @@ db.collection("queues").onSnapshot(snapshot=>{
 
   document.getElementById("waiting").innerHTML = waitingHTML;
   document.getElementById("confirmed").innerHTML = confirmedHTML;
+  document.getElementById("seated").innerHTML = seatedHTML;
   document.getElementById("completed").innerHTML = completedHTML;
   document.getElementById("cancelled").innerHTML = cancelledHTML;
 
@@ -105,6 +132,8 @@ db.collection("queues").onSnapshot(snapshot=>{
 <div id="waiting"></div>
 <hr>
 <div id="confirmed"></div>
+<hr>
+<div id="seated"></div>
 <hr>
 <div id="completed"></div>
 <hr>
