@@ -34,37 +34,13 @@ function checkPassword(){
   }
 }
 
-// 确认到店 + 输入桌号
-function confirmAndAssign(id){
-  const tableNumber = prompt("请输入桌号 (Table Number):");
-
-  if(!tableNumber){
-    alert("必须输入桌号！");
-    return;
-  }
-
-  db.collection("queues").doc(id).update({
-    status: "seated",
-    tableNumber: tableNumber
-  });
+function updateStatus(id,status){
+  db.collection("queues").doc(id).update({status:status});
 }
 
-function complete(id){
-  db.collection("queues").doc(id).update({
-    status: "completed"
-  });
-}
-
-function cancel(id){
-  db.collection("queues").doc(id).update({
-    status: "cancelled"
-  });
-}
-
-// 打开 WhatsApp
 function openWhatsApp(phone){
-  const cleanPhone = phone.replace("+","");
-  window.open("https://wa.me/"+cleanPhone,"_blank");
+  const clean = phone.replace("+","");
+  window.open("https://wa.me/"+clean,"_blank");
 }
 
 db.collection("queues").onSnapshot(snapshot=>{
@@ -84,27 +60,21 @@ db.collection("queues").onSnapshot(snapshot=>{
 
       const block = `
       <div style="border:1px solid #ccc;margin:5px;padding:8px;">
-      <b>${data.queueNumber}</b><br>
-      电话: ${data.phone}<br>
+      <b>${data.name || "-"}</b><br>
+      电话: ${data.phone || "-"}<br>
       成人: ${data.adults || 0} | 宝宝椅: ${data.babyChairs || 0}<br>
-      座位: ${data.seatPreference || ""}<br>
+      座位: ${data.seatPreference || "-"}<br>
       桌号: ${data.tableNumber || "-"}<br><br>
 
-      <button onclick="openWhatsApp('${data.phone}')">
-      📱 WhatsApp
-      </button>
+      <button onclick="openWhatsApp('${data.phone}')">📱 WhatsApp</button>
 
       ${data.status==="waiting" ?
-      `<button onclick="confirmAndAssign('${doc.id}')">
-      确认到店+分桌
-      </button>` : ""}
+      `<button onclick="confirmAndAssign('${doc.id}')">确认到店+分桌</button>` : ""}
 
       ${data.status==="seated" ?
-      `<button onclick="complete('${doc.id}')">
-      入座完成
-      </button>` : ""}
+      `<button onclick="updateStatus('${doc.id}','completed')">入座完成</button>` : ""}
 
-      <button onclick="cancel('${doc.id}')">取消</button>
+      <button onclick="updateStatus('${doc.id}','cancelled')">取消</button>
       </div>
       `;
 
@@ -124,6 +94,19 @@ db.collection("queues").onSnapshot(snapshot=>{
   document.getElementById("cancelled").innerHTML = cancelledHTML;
 
 });
+
+function confirmAndAssign(id){
+  const tableNumber = prompt("请输入桌号:");
+  if(!tableNumber){
+    alert("必须输入桌号");
+    return;
+  }
+
+  db.collection("queues").doc(id).update({
+    status:"seated",
+    tableNumber: tableNumber
+  });
+}
 </script>
 </head>
 
