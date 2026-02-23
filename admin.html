@@ -58,13 +58,21 @@ function assignTable(id){
   });
 }
 
-function renderData(dataList){
+function render(){
 
-  let html = "";
+  const waiting = document.getElementById("waiting");
+  const seated = document.getElementById("seated");
+  const completed = document.getElementById("completed");
+  const cancelled = document.getElementById("cancelled");
 
-  dataList.forEach(item=>{
+  waiting.innerHTML = "<h3>🟡 Waiting</h3>";
+  seated.innerHTML = "<h3>🟣 Seated</h3>";
+  completed.innerHTML = "<h3>🟢 Completed</h3>";
+  cancelled.innerHTML = "<h3>🔴 Cancelled</h3>";
 
-    html += `
+  allData.forEach(item=>{
+
+    const block = `
     <div style="border:1px solid #ccc;margin:5px;padding:10px;">
     <b>${item.queueNumber || "-"}</b><br>
     姓名: ${item.name || "-"}<br>
@@ -73,8 +81,7 @@ function renderData(dataList){
     时间: ${item.time || "-"}<br>
     成人: ${item.adults || 0} | 宝宝椅: ${item.babyChairs || 0}<br>
     座位: ${item.seatPreference || "-"}<br>
-    桌号: ${item.tableNumber || "-"}<br>
-    状态: ${item.status || "-"}<br><br>
+    桌号: ${item.tableNumber || "-"}<br><br>
 
     <button onclick="openWhatsApp('${item.phone}')">📱 WhatsApp</button>
 
@@ -85,12 +92,15 @@ function renderData(dataList){
     `<button onclick="updateStatus('${item.id}','completed')">入座完成</button>` : ""}
 
     <button onclick="updateStatus('${item.id}','cancelled')">取消</button>
-
     </div>
     `;
-  });
 
-  document.getElementById("results").innerHTML = html;
+    if(item.status==="waiting") waiting.innerHTML += block;
+    if(item.status==="seated") seated.innerHTML += block;
+    if(item.status==="completed") completed.innerHTML += block;
+    if(item.status==="cancelled") cancelled.innerHTML += block;
+
+  });
 }
 
 function search(){
@@ -107,7 +117,32 @@ function search(){
 
   });
 
-  renderData(filtered);
+  renderFiltered(filtered);
+}
+
+function renderFiltered(list){
+
+  const waiting = document.getElementById("waiting");
+  const seated = document.getElementById("seated");
+  const completed = document.getElementById("completed");
+  const cancelled = document.getElementById("cancelled");
+
+  waiting.innerHTML = seated.innerHTML =
+  completed.innerHTML = cancelled.innerHTML = "";
+
+  list.forEach(item=>{
+
+    const block = `
+    <div style="border:1px solid #ccc;margin:5px;padding:10px;">
+    <b>${item.queueNumber}</b><br>
+    姓名: ${item.name}<br>
+    电话: ${item.phone}<br>
+    状态: ${item.status}<br>
+    </div>
+    `;
+
+    waiting.innerHTML += block;
+  });
 }
 
 db.collection("queues").onSnapshot(snapshot=>{
@@ -121,7 +156,7 @@ db.collection("queues").onSnapshot(snapshot=>{
     }
   });
 
-  renderData(allData);
+  render();
 
 });
 </script>
@@ -141,11 +176,17 @@ db.collection("queues").onSnapshot(snapshot=>{
 
 <input type="text" id="searchInput" placeholder="搜索 姓名 / 电话 / 排号">
 <button onclick="search()">🔍 搜索</button>
-<button onclick="renderData(allData)">显示全部</button>
+<button onclick="render()">显示全部</button>
 
 <hr>
 
-<div id="results"></div>
+<div id="waiting"></div>
+<hr>
+<div id="seated"></div>
+<hr>
+<div id="completed"></div>
+<hr>
+<div id="cancelled"></div>
 
 </div>
 
