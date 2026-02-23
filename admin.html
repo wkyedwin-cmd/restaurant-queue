@@ -20,13 +20,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+let allData = [];
+
 function today(){
   return new Date().toISOString().split("T")[0];
 }
 
 function checkPassword(){
   const input = document.getElementById("password").value;
-
   if(input === "1234"){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
@@ -36,14 +37,13 @@ function checkPassword(){
 }
 
 function openWhatsApp(phone){
+  if(!phone) return;
   const clean = phone.replace("+","");
   window.open("https://wa.me/"+clean,"_blank");
 }
 
 function updateStatus(id,status){
-  db.collection("queues").doc(id).update({
-    status:status
-  });
+  db.collection("queues").doc(id).update({status:status});
 }
 
 function assignTable(id){
@@ -67,10 +67,13 @@ function getColor(status){
   return "white";
 }
 
-function renderData(list){
+function render(list){
 
   const container = document.getElementById("results");
   container.innerHTML = "";
+
+  // 前端按时间排序（不需要数据库索引）
+  list.sort((a,b)=> (a.timestamp||0)-(b.timestamp||0));
 
   list.forEach(item=>{
 
@@ -116,20 +119,27 @@ function renderData(list){
   });
 }
 
-db.collection("queues")
-  .where("date","==",today())
-  .orderBy("timestamp","asc")
+function loadData(){
+
+  db.collection("queues")
   .onSnapshot(snapshot=>{
 
-    const data = [];
+    allData = [];
 
     snapshot.forEach(doc=>{
-      data.push({...doc.data(),id:doc.id});
+      const data = doc.data();
+
+      // 只显示今天
+      if(data.date === today()){
+        allData.push({...data,id:doc.id});
+      }
     });
 
-    renderData(data);
+    render(allData);
 
   });
+}
+
 </script>
 </head>
 
@@ -148,6 +158,10 @@ db.collection("queues")
 <div id="results"></div>
 
 </div>
+
+<script>
+loadData();
+</script>
 
 </body>
 </html>
