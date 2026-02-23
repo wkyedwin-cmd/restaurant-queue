@@ -50,7 +50,7 @@ function assignTable(id){
   if(!tableNumber) return;
 
   db.collection("queues").doc(id).update({
-    status:"confirmed table",
+    status:"confirmed",
     tableNumber: tableNumber
   });
 }
@@ -82,7 +82,7 @@ function renderSection(title, list, container){
     确认到店+分桌
     </button>` : ""}
 
-    ${item.status==="confirmed table" ?
+    ${item.status==="confirmed" ?
     `<button onclick="updateStatus('${item.id}','completed')">
     入座完成
     </button>` : ""}
@@ -113,7 +113,7 @@ function loadData(){
       if(data.status==="waiting"){
         waiting.push(data);
       }
-      else if(data.status==="confirmed table"){
+      else if(data.status==="confirmed"){
         confirmed.push(data);
       }
       else if(data.status==="cancelled"){
@@ -124,17 +124,14 @@ function loadData(){
       }
     });
 
-    // 上面两种按时间排序
     waiting.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
     confirmed.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
 
-    const topSection = [...waiting, ...confirmed];
+    const top = [...waiting, ...confirmed];
 
-    renderSection("🟡 Waiting + 🟢 Confirmed Table", topSection, document.getElementById("top"));
-
-    renderSection("🔻 Cancelled", cancelled, document.getElementById("cancel"));
-
-    renderSection("🔻 Completed", completed, document.getElementById("complete"));
+    renderSection("🟡 Waiting + 🟢 Confirmed", top, document.getElementById("top"));
+    renderSection("🔴 Cancelled", cancelled, document.getElementById("cancel"));
+    renderSection("🟢 Completed", completed, document.getElementById("complete"));
 
   });
 }
