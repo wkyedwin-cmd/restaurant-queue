@@ -2,13 +2,65 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Admin</title>
-</head>
-<body>
+<title>Admin Panel</title>
 
-<h2>Admin Test Page</h2>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<p>如果你看到这行字，说明页面正常。</p>
+const firebaseConfig = {
+  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
+  authDomain: "yunnans-1u.firebaseapp.com",
+  projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
+};
 
-</body>
-</html>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function today(){
+  return new Date().toISOString().split("T")[0];
+}
+
+window.checkPassword = function(){
+  const input = document.getElementById("password").value;
+  const correctPassword = "1234";
+
+  if(input === correctPassword){
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+  }else{
+    alert("密码错误");
+  }
+};
+
+onSnapshot(collection(db,"queues"),(snapshot)=>{
+
+  let waitingHTML = "<h3>🟡 Waiting</h3>";
+  let confirmedHTML = "<h3>🔵 Confirmed</h3>";
+  let completedHTML = "<h3>🟢 Completed</h3>";
+  let cancelledHTML = "<h3>🔴 Cancelled</h3>";
+
+  let total = 0;
+
+  snapshot.forEach((d)=>{
+    const data = d.data();
+
+    if(data.date === today()){
+      total++;
+
+      const block = `
+      <div style="border:1px solid #ccc;margin:5px;padding:8px;">
+      <b>${data.queueNumber}</b><br>
+      电话: ${data.phone}<br>
+      成人: ${data.adults} | 宝宝椅: ${data.babyChairs}<br>
+      座位: ${data.seatPreference}<br><br>
+
+      ${data.status === "waiting" ? 
+      `<button onclick="confirm('${d.id}')">确认到店</button>` : ""}
+
+      ${data.status === "confirmed" ? 
+      `<button onclick="complete('${d
