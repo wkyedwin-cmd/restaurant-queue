@@ -6,7 +6,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, where } 
+import { getFirestore, collection, addDoc, onSnapshot, query, where } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -36,15 +36,7 @@ window.joinQueue = async function(){
     return;
   }
 
-  // 先计算今天等待中的人数
-  const q = query(collection(db,"queues"), where("date","==",today()));
-  const snapshot = await getDocs(q);
-
-  const waitingList = snapshot.docs.filter(d=>d.data().status==="waiting");
-  const queueNumber = "Q" + String(waitingList.length+1).padStart(3,'0');
-
   await addDoc(collection(db,"queues"),{
-    queueNumber,
     phone,
     people,
     babyChair: baby || 0,
@@ -55,9 +47,21 @@ window.joinQueue = async function(){
   });
 
   document.getElementById("result").innerHTML =
-    `<h2>您的号码: ${queueNumber}</h2>
-     <h3>前面还有 ${waitingList.length} 桌等待</h3>`;
+    "提交成功，请等待通知。";
 }
+
+// 🔥 实时监听等待人数
+onSnapshot(collection(db,"queues"),(snapshot)=>{
+
+  const waiting = snapshot.docs.filter(d=>
+    d.data().date===today() &&
+    d.data().status==="waiting"
+  );
+
+  document.getElementById("waitingCount").innerHTML =
+    "当前等待人数: " + waiting.length;
+
+});
 </script>
 
 </head>
@@ -76,6 +80,8 @@ window.joinQueue = async function(){
 <input type="number" id="baby"><br><br>
 
 <button onclick="joinQueue()">提交</button>
+
+<h3 id="waitingCount"></h3>
 
 <div id="result"></div>
 
