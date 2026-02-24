@@ -20,6 +20,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+let allData = [];
+
 function today(){
   return new Date().toISOString().split("T")[0];
 }
@@ -55,12 +57,10 @@ function assignTable(id){
   });
 }
 
-function renderSection(title, list, container){
-
-  container.innerHTML = `<h3>${title}</h3>`;
+function renderList(list, container){
+  container.innerHTML = "";
 
   list.forEach(item=>{
-
     container.innerHTML += `
     <div style="border:1px solid #ccc;margin:6px;padding:10px;">
 
@@ -71,29 +71,60 @@ function renderSection(title, list, container){
     📞 电话: ${item.phone || "-"}<br>
     👨 成人: ${item.adults || 0}<br>
     👶 宝宝椅: ${item.babyChairs || 0}<br>
-    🪑 座位: ${item.seatPreference || "-"}<br>
     🏷 桌号: ${item.tableNumber || "-"}<br>
     📌 状态: ${item.status || "-"}<br><br>
 
     <button onclick="openWhatsApp('${item.phone}')">WhatsApp</button>
 
     ${item.status==="waiting" ?
-    `<button onclick="assignTable('${item.id}')">
-    确认到店+分桌
-    </button>` : ""}
+      `<button onclick="assignTable('${item.id}')">
+        确认到店+分桌
+      </button>` : ""}
 
     ${item.status==="confirmed" ?
-    `<button onclick="updateStatus('${item.id}','completed')">
-    入座完成
-    </button>` : ""}
+      `<button onclick="updateStatus('${item.id}','completed')">
+        入座完成
+      </button>` : ""}
 
     <button onclick="updateStatus('${item.id}','cancelled')">
-    取消
+      取消
     </button>
 
     </div>
     `;
   });
+}
+
+function applyFilter(){
+
+  const keyword = document.getElementById("search").value.toLowerCase();
+
+  let active = [];
+  let finished = [];
+
+  allData.forEach(data=>{
+
+    const match =
+      (data.name || "").toLowerCase().includes(keyword) ||
+      (data.phone || "").includes(keyword) ||
+      String(data.queueNumber || "").includes(keyword);
+
+    if(match){
+
+      if(data.status==="waiting" || data.status==="confirmed"){
+        active.push(data);
+      }else{
+        finished.push(data);
+      }
+
+    }
+  });
+
+  active.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+  finished.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+
+  renderList(active, document.getElementById("activeList"));
+  renderList(finished, document.getElementById("finishedList"));
 }
 
 function loadData(){
@@ -102,40 +133,15 @@ function loadData(){
   .where("date","==",today())
   .onSnapshot(snapshot=>{
 
-    let waiting = [];
-    let confirmed = [];
-    let cancelled = [];
-    let completed = [];
+    allData = [];
 
     snapshot.forEach(doc=>{
-      const data = {...doc.data(),id:doc.id};
-
-      if(data.status==="waiting"){
-        waiting.push(data);
-      }
-      else if(data.status==="confirmed"){
-        confirmed.push(data);
-      }
-      else if(data.status==="cancelled"){
-        cancelled.push(data);
-      }
-      else if(data.status==="completed"){
-        completed.push(data);
-      }
+      allData.push({...doc.data(), id: doc.id});
     });
 
-    waiting.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
-    confirmed.sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
-
-    const top = [...waiting, ...confirmed];
-
-    renderSection("🟡 Waiting + 🟢 Confirmed", top, document.getElementById("top"));
-    renderSection("🔴 Cancelled", cancelled, document.getElementById("cancel"));
-    renderSection("🟢 Completed", completed, document.getElementById("complete"));
-
+    applyFilter();
   });
 }
-
 </script>
 </head>
 
@@ -151,11 +157,21 @@ function loadData(){
 
 <h2>后台管理系统</h2>
 
-<div id="top"></div>
-<hr>
-<div id="cancel"></div>
-<hr>
-<div id="complete"></div>
+<input 
+  type="text" 
+  id="search" 
+  placeholder="🔍 搜索名字 / 电话 / 排号"
+  oninput="applyFilter()"
+  style="width:300px;padding:6px;margin-bottom:15px;"
+>
+
+<h3>待处理（Waiting + Confirmed）</h3>
+<div id="activeList"></div>
+
+<hr style="margin:30px 0; border:2px solid #000;">
+
+<h3>已处理（Cancelled + Completed）</h3>
+<div id="finishedList"></div>
 
 </div>
 
