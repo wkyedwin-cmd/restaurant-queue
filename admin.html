@@ -17,9 +17,11 @@ const firebaseConfig = {
   appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
+const db = firebase.firestore();
 let allData = [];
 
 function today(){
@@ -37,14 +39,18 @@ function checkPassword(){
   }
 }
 
-function openWhatsApp(phone){
-  if(!phone) return;
-  const clean = phone.replace("+","");
-  window.open("https://wa.me/"+clean,"_blank");
-}
-
 function updateStatus(id,status){
-  db.collection("queues").doc(id).update({status:status});
+
+  const updateData = {
+    status: status
+  };
+
+  // 如果是 completed 或 cancelled 记录完成时间
+  if(status === "completed" || status === "cancelled"){
+    updateData.finishedAt = firebase.firestore.FieldValue.serverTimestamp();
+  }
+
+  db.collection("queues").doc(id).update(updateData);
 }
 
 function assignTable(id){
@@ -62,32 +68,33 @@ function renderList(list, container){
 
   list.forEach(item=>{
     container.innerHTML += `
-    <div style="border:1px solid #ccc;margin:6px;padding:10px;">
+    <div style="border:1px solid #ccc;margin:8px;padding:12px;">
 
-    📅 日期: ${item.date || "-"}<br>
-    ⏰ 时间: ${item.time || "-"}<br>
-    🆔 排号: <b>${item.queueNumber || "-"}</b><br>
-    👤 姓名: ${item.name || "-"}<br>
-    📞 电话: ${item.phone || "-"}<br>
-    👨 成人: ${item.adults || 0}<br>
-    👶 宝宝椅: ${item.babyChairs || 0}<br>
-    🏷 桌号: ${item.tableNumber || "-"}<br>
-    📌 状态: ${item.status || "-"}<br><br>
+    📅 ${item.date || "-"} |
+    ⏰ ${item.time || "-"} |
+    🆔 <b>${item.queueNumber || "-"}</b><br>
 
-    <button onclick="openWhatsApp('${item.phone}')">WhatsApp</button>
+    👤 ${item.name || "-"} |
+    📞 ${item.phone || "-"}<br>
+
+    👨 成人:${item.adults || 0} |
+    👶 宝宝椅:${item.babyChairs || 0} |
+    🏷 桌号:${item.tableNumber || "-"}<br>
+
+    📌 状态:${item.status || "-"}<br><br>
 
     ${item.status==="waiting" ?
       `<button onclick="assignTable('${item.id}')">
-        确认到店+分桌
+        Confirm + Table
       </button>` : ""}
 
     ${item.status==="confirmed" ?
       `<button onclick="updateStatus('${item.id}','completed')">
-        入座完成
+        Completed
       </button>` : ""}
 
     <button onclick="updateStatus('${item.id}','cancelled')">
-      取消
+      Cancel
     </button>
 
     </div>
@@ -120,8 +127,15 @@ function applyFilter(){
     }
   });
 
-  active.sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
-  finished.sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
+  // 🟢 Waiting + Confirmed → 最早排在上面
+  active.sort((a,b)=>
+    (a.timestamp?.seconds||0)-(b.timestamp?.seconds||0)
+  );
+
+  // 🔴 Completed + Cancelled → 最新完成排在最上面
+  finished.sort((a,b)=>
+    (b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0)
+  );
 
   renderList(active, document.getElementById("activeList"));
   renderList(finished, document.getElementById("finishedList"));
@@ -165,12 +179,12 @@ function loadData(){
   style="width:300px;padding:6px;margin-bottom:15px;"
 >
 
-<h3>待处理（Waiting + Confirmed）</h3>
+<h3>🟢 Waiting + Confirmed</h3>
 <div id="activeList"></div>
 
-<hr style="margin:30px 0; border:2px solid #000;">
+<hr style="margin:30px 0; border:2px solid black;">
 
-<h3>已处理（Cancelled + Completed）</h3>
+<h3>🔴 Cancelled + Completed</h3>
 <div id="finishedList"></div>
 
 </div>
