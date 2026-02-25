@@ -1,119 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Queue Registration</title>
+function getDailyLetter() {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), 0, 0);
+  const diff = today - start;
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
-  authDomain: "yunnans-1u.firebaseapp.com",
-  projectId: "yunnans-1u",
-  storageBucket: "yunnans-1u.firebasestorage.app",
-  messagingSenderId: "490439485047",
-  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-function today(){
-  return new Date().toISOString().split("T")[0];
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  return letters[dayOfYear % 26];
 }
 
-function nowTime(){
-  return new Date().toLocaleTimeString();
-}
+async function generateDailyQueueNumber() {
+  const today = new Date().toISOString().split("T")[0];
+  const dailyLetter = getDailyLetter();
 
-async function getNextQueueNumber(){
+  while (true) {
+    const randomNumber = Math.floor(Math.random() * 999) + 1;
+    const formattedNumber = String(randomNumber).padStart(3, "0");
 
-  const snapshot = await db.collection("queues")
-    .where("date","==",today())
-    .get();
+    const fullQueueNumber = dailyLetter + formattedNumber;
 
-  return snapshot.size + 1;
-}
+    const q = query(
+      collection(db, "queues"),
+      where("date", "==", today),
+      where("queueNumber", "==", fullQueueNumber)
+    );
 
-async function submitForm(){
+    const snapshot = await getDocs(q);
 
-  const name = document.getElementById("name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const adults = parseInt(document.getElementById("adults").value);
-  const babyChairs = parseInt(document.getElementById("babyChairs").value);
-
-  if(!name || !phone){
-    alert("请填写完整信息 / Please complete all fields");
-    return;
+    if (snapshot.empty) {
+      return fullQueueNumber;
+    }
   }
-
-  if(phone.startsWith("0")){
-    alert("电话不能以0开头 / Phone number must NOT start with 0");
-    return;
-  }
-
-  const queueNumber = await getNextQueueNumber();
-
-  await db.collection("queues").add({
-    name: name,
-    phone: phone,
-    adults: adults,
-    babyChairs: babyChairs,
-    queueNumber: queueNumber,
-    date: today(),
-    time: nowTime(),
-    timestamp: Date.now(),
-    status: "waiting"
-  });
-
-  document.getElementById("formSection").style.display="none";
-  document.getElementById("successSection").style.display="block";
-  document.getElementById("queueDisplay").innerText = queueNumber;
 }
-</script>
-
-</head>
-
-<body>
-
-<h2>排队登记 / Queue Registration</h2>
-
-<div id="formSection">
-
-<label>姓名 / Name</label><br>
-<input type="text" id="name" required><br><br>
-
-<label>
-电话 / Phone Number  
-<br>
-（请勿填写0开头，例如 123456789）
-<br>
-Do NOT start with 0. Example: 123456789
-</label><br>
-<input type="tel" id="phone" required><br><br>
-
-<label>成人数量 / Number of Adults</label><br>
-<input type="number" id="adults" min="1" value="1"><br><br>
-
-<label>宝宝椅数量 / Baby Chairs Needed</label><br>
-<input type="number" id="babyChairs" min="0" value="0"><br><br>
-
-<button onclick="submitForm()">提交 / Submit</button>
-
-</div>
-
-<div id="successSection" style="display:none;">
-
-<h3>登记成功 / Registration Successful</h3>
-<p>您的排号是 / Your Queue Number:</p>
-
-<h1 id="queueDisplay"></h1>
-
-<p>请等待工作人员通知 / Please wait to be called</p>
-
-</div>
-
-</body>
-</html>
