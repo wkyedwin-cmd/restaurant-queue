@@ -2,6 +2,129 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<title>后台管理系统</title>
+</head>
+<body>
+
+<h2>后台管理系统</h2>
+
+<input type="password" id="password" placeholder="Enter Password">
+<button onclick="login()">Login</button>
+
+<div id="adminPanel" style="display:none;">
+<br>
+<input type="text" id="search" placeholder="Search name / phone / queue number">
+
+<h3>🟢 Waiting / Confirmed</h3>
+<div id="activeList"></div>
+
+<hr>
+
+<h3>🔴 Cancelled / Completed</h3>
+<div id="doneList"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "你的APIKEY",
+  authDomain: "你的AUTHDOMAIN",
+  projectId: "你的PROJECTID",
+  storageBucket: "你的STORAGE",
+  messagingSenderId: "你的MSGID",
+  appId: "你的APPID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.login = function() {
+  const pwd = document.getElementById("password").value;
+  if (pwd === "1234") {
+    document.getElementById("adminPanel").style.display = "block";
+  } else {
+    alert("Wrong password");
+  }
+}
+
+const activeList = document.getElementById("activeList");
+const doneList = document.getElementById("doneList");
+const searchInput = document.getElementById("search");
+
+onSnapshot(collection(db, "queues"), (snapshot) => {
+  activeList.innerHTML = "";
+  doneList.innerHTML = "";
+
+  const data = [];
+
+  snapshot.forEach(docSnap => {
+    data.push({ id: docSnap.id, ...docSnap.data() });
+  });
+
+  data.sort((a,b) => {
+    if (a.date === b.date) {
+      return a.time.localeCompare(b.time);
+    }
+    return a.date.localeCompare(b.date);
+  });
+
+  const keyword = searchInput.value?.toLowerCase() || "";
+
+  data.forEach(item => {
+    if (
+      item.name?.toLowerCase().includes(keyword) ||
+      item.phone?.includes(keyword) ||
+      item.queueNumber?.toLowerCase().includes(keyword)
+    ) {
+
+      const div = document.createElement("div");
+      div.innerHTML = `
+      <b>${item.date}</b> | ${item.time} |
+      ${item.queueNumber} |
+      ${item.name} |
+      ${item.phone} |
+      成人:${item.adults} 宝宝椅:${item.babyChairs} |
+      ${item.seating} |
+      状态:${item.status}
+      <br>
+      <button onclick="updateStatus('${item.id}','confirmed')">Confirmed</button>
+      <button onclick="updateStatus('${item.id}','completed')">Completed</button>
+      <button onclick="updateStatus('${item.id}','cancelled')">Cancelled</button>
+      <hr>
+      `;
+
+      if (item.status === "waiting" || item.status === "confirmed") {
+        activeList.appendChild(div);
+      } else {
+        doneList.appendChild(div);
+      }
+    }
+  });
+});
+
+window.updateStatus = async function(id,status) {
+  await updateDoc(doc(db,"queues",id), { status });
+}
+
+searchInput.addEventListener("input", () => {
+  location.reload();
+});
+</script>
+
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
 <title>Admin Panel</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -177,3 +300,4 @@ function loadData(){
 
 </body>
 </html>
+
