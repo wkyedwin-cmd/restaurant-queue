@@ -30,7 +30,7 @@ function today(){
 
 function checkPassword(){
   const input = document.getElementById("password").value;
-  if(input === "0606"){
+  if(input === "1234"){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
     loadData();
@@ -39,13 +39,18 @@ function checkPassword(){
   }
 }
 
+function openWhatsApp(phone){
+  if(!phone) return;
+  const clean = phone.replace("+","");
+  window.open("https://wa.me/"+clean,"_blank");
+}
+
 function updateStatus(id,status){
 
   const updateData = {
     status: status
   };
 
-  // 如果是 completed 或 cancelled 记录完成时间
   if(status === "completed" || status === "cancelled"){
     updateData.finishedAt = firebase.firestore.FieldValue.serverTimestamp();
   }
@@ -82,6 +87,10 @@ function renderList(list, container){
     🏷 桌号:${item.tableNumber || "-"}<br>
 
     📌 状态:${item.status || "-"}<br><br>
+
+    <button onclick="openWhatsApp('${item.phone}')">
+      WhatsApp
+    </button>
 
     ${item.status==="waiting" ?
       `<button onclick="assignTable('${item.id}')">
@@ -127,12 +136,12 @@ function applyFilter(){
     }
   });
 
-  // 🟢 Waiting + Confirmed → 最早排在上面
+  // 🟢 Waiting + Confirmed → 最早在上
   active.sort((a,b)=>
     (a.timestamp?.seconds||0)-(b.timestamp?.seconds||0)
   );
 
-  // 🔴 Completed + Cancelled → 最新完成排在最上面
+  // 🔴 Completed + Cancelled → 最新在上
   finished.sort((a,b)=>
     (b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0)
   );
@@ -191,4 +200,3 @@ function loadData(){
 
 </body>
 </html>
-
