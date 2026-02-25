@@ -1,9 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Restaurant Queue</title>
+</head>
+<body>
+
+<h2>餐厅排号系统</h2>
+
+<form id="queueForm">
+  <label>姓名 Name:</label><br>
+  <input type="text" id="name" required><br><br>
+
+  <label>电话 Phone (请勿填写0开头 Do NOT start with 0):</label><br>
+  <input type="tel" id="phone" required><br><br>
+
+  <label>成人 Adults:</label><br>
+  <input type="number" id="adults" min="1" required><br><br>
+
+  <label>宝宝椅 Baby Chairs:</label><br>
+  <input type="number" id="babyChairs" min="0" value="0"><br><br>
+
+  <label>座位选择 Seating:</label><br>
+  <select id="seating">
+    <option value="indoor">室内 Indoor</option>
+    <option value="outdoor">室外 Outdoor</option>
+    <option value="any">随意 Fastest Available</option>
+  </select><br><br>
+
+  <button type="submit">提交 Submit</button>
+</form>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "你的APIKEY",
+  authDomain: "你的AUTHDOMAIN",
+  projectId: "你的PROJECTID",
+  storageBucket: "你的STORAGE",
+  messagingSenderId: "你的MSGID",
+  appId: "你的APPID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 function getDailyLetter() {
   const today = new Date();
   const start = new Date(today.getFullYear(), 0, 0);
   const diff = today - start;
   const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   return letters[dayOfYear % 26];
 }
@@ -15,7 +71,6 @@ async function generateDailyQueueNumber() {
   while (true) {
     const randomNumber = Math.floor(Math.random() * 999) + 1;
     const formattedNumber = String(randomNumber).padStart(3, "0");
-
     const fullQueueNumber = dailyLetter + formattedNumber;
 
     const q = query(
@@ -31,3 +86,37 @@ async function generateDailyQueueNumber() {
     }
   }
 }
+
+document.getElementById("queueForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+  const adults = document.getElementById("adults").value;
+  const babyChairs = document.getElementById("babyChairs").value;
+  const seating = document.getElementById("seating").value;
+
+  const queueNumber = await generateDailyQueueNumber();
+  const today = new Date().toISOString().split("T")[0];
+  const time = new Date().toLocaleTimeString();
+
+  await addDoc(collection(db, "queues"), {
+    queueNumber,
+    name,
+    phone,
+    adults,
+    babyChairs,
+    seating,
+    status: "waiting",
+    date: today,
+    time,
+    timestamp: serverTimestamp()
+  });
+
+  alert("您的排号是: " + queueNumber);
+  document.getElementById("queueForm").reset();
+});
+</script>
+
+</body>
+</html>
