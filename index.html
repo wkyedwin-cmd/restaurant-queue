@@ -4,8 +4,23 @@
 <meta charset="UTF-8">
 <title>Restaurant Queue</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<!-- intl-tel-input CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css"/>
+
+<!-- intl-tel-input JS -->
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
+
+<style>
+input, select, button {
+  padding:8px;
+  width:250px;
+  margin-bottom:10px;
+}
+</style>
 
 <script>
 const firebaseConfig = {
@@ -22,6 +37,18 @@ if (!firebase.apps.length) {
 }
 
 const db = firebase.firestore();
+
+let phoneInput;
+
+window.onload = function(){
+  const input = document.querySelector("#phone");
+  phoneInput = window.intlTelInput(input, {
+    initialCountry: "my",  // 默认 Malaysia
+    preferredCountries: ["my","sg","cn"],
+    separateDialCode: false,
+    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
+  });
+};
 
 function getDailyLetter() {
   const today = new Date();
@@ -56,15 +83,16 @@ async function submitForm(e){
   e.preventDefault();
 
   const name = document.getElementById("name").value;
-  const phone = document.getElementById("phone").value.trim();
   const adults = parseInt(document.getElementById("adults").value);
   const babyChairs = parseInt(document.getElementById("babyChairs").value);
   const seating = document.getElementById("seating").value;
 
-  if(!phone.startsWith("+")){
-    alert("电话号码必须包含国家代码，例如 +60123456789");
+  if(!phoneInput.isValidNumber()){
+    alert("请输入正确的电话号码 / Please enter a valid phone number");
     return;
   }
+
+  const phone = phoneInput.getNumber(); // 自动带 + 国家码
 
   const queueNumber = await generateDailyQueueNumber();
   const today = new Date().toISOString().split("T")[0];
@@ -85,9 +113,7 @@ async function submitForm(e){
 
   alert("您的排号是: " + queueNumber);
   document.getElementById("queueForm").reset();
-
-  // 重置后重新填回 +60
-  document.getElementById("phone").value = "+60";
+  phoneInput.setCountry("my");
 }
 </script>
 </head>
@@ -99,29 +125,23 @@ async function submitForm(e){
 <form id="queueForm" onsubmit="submitForm(event)">
 
 姓名 Name:<br>
-<input type="text" id="name" required><br><br>
+<input type="text" id="name" required><br>
 
-电话 Phone (默认 +60，可修改国际号):<br>
-<input 
-  type="tel" 
-  id="phone" 
-  value="+60"
-  required
-  style="width:250px;padding:6px;"
-><br><br>
+电话 Phone:<br>
+<input type="tel" id="phone" required><br>
 
 成人 Adults:<br>
-<input type="number" id="adults" min="1" required><br><br>
+<input type="number" id="adults" min="1" required><br>
 
 宝宝椅 Baby Chairs:<br>
-<input type="number" id="babyChairs" min="0" value="0"><br><br>
+<input type="number" id="babyChairs" min="0" value="0"><br>
 
 座位选择 Seating:<br>
 <select id="seating">
   <option value="indoor">室内 Indoor</option>
   <option value="outdoor">室外 Outdoor</option>
   <option value="any">随意 Fastest Available</option>
-</select><br><br>
+</select><br>
 
 <button type="submit">提交 Submit</button>
 
