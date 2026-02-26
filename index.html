@@ -2,23 +2,69 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Restaurant Queue</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<!-- intl-tel-input CSS -->
+<!-- intl tel input -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css"/>
-
-<!-- intl-tel-input JS -->
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
 
 <style>
-input, select, button {
-  padding:8px;
-  width:250px;
-  margin-bottom:10px;
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  background: white;
+  width: 100%;
+  max-width: 420px;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 12px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 18px;
+  margin-top: 20px;
+  border-radius: 10px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #0056b3;
 }
 </style>
 
@@ -37,13 +83,11 @@ if (!firebase.apps.length) {
 }
 
 const db = firebase.firestore();
-
 let phoneInput;
 
 window.onload = function(){
-  const input = document.querySelector("#phone");
-  phoneInput = window.intlTelInput(input, {
-    initialCountry: "my",  // 默认 Malaysia
+  phoneInput = window.intlTelInput(document.querySelector("#phone"), {
+    initialCountry: "my",
     preferredCountries: ["my","sg","cn"],
     separateDialCode: false,
     utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
@@ -73,41 +117,30 @@ async function generateDailyQueueNumber() {
       .where("queueNumber","==",fullQueueNumber)
       .get();
 
-    if (snapshot.empty) {
-      return fullQueueNumber;
-    }
+    if (snapshot.empty) return fullQueueNumber;
   }
 }
 
 async function submitForm(e){
   e.preventDefault();
 
-  const name = document.getElementById("name").value;
-  const adults = parseInt(document.getElementById("adults").value);
-  const babyChairs = parseInt(document.getElementById("babyChairs").value);
-  const seating = document.getElementById("seating").value;
-
   if(!phoneInput.isValidNumber()){
-    alert("请输入正确的电话号码 / Please enter a valid phone number");
+    alert("请输入正确的电话号码 / Please enter valid phone number");
     return;
   }
 
-  const phone = phoneInput.getNumber(); // 自动带 + 国家码
-
   const queueNumber = await generateDailyQueueNumber();
-  const today = new Date().toISOString().split("T")[0];
-  const time = new Date().toLocaleTimeString();
 
   await db.collection("queues").add({
     queueNumber: queueNumber,
-    name: name,
-    phone: phone,
-    adults: adults,
-    babyChairs: babyChairs,
-    seating: seating,
+    name: document.getElementById("name").value,
+    phone: phoneInput.getNumber(),
+    adults: parseInt(document.getElementById("adults").value),
+    babyChairs: parseInt(document.getElementById("babyChairs").value),
+    seating: document.getElementById("seating").value,
     status: "waiting",
-    date: today,
-    time: time,
+    date: new Date().toISOString().split("T")[0],
+    time: new Date().toLocaleTimeString(),
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
 
@@ -120,32 +153,34 @@ async function submitForm(e){
 
 <body>
 
+<div class="container">
 <h2>餐厅排号系统</h2>
 
 <form id="queueForm" onsubmit="submitForm(event)">
 
-姓名 Name:<br>
-<input type="text" id="name" required><br>
+<label>姓名 Name</label>
+<input type="text" id="name" required>
 
-电话 Phone:<br>
-<input type="tel" id="phone" required><br>
+<label>电话 Phone</label>
+<input type="tel" id="phone" required>
 
-成人 Adults:<br>
-<input type="number" id="adults" min="1" required><br>
+<label>成人 Adults</label>
+<input type="number" id="adults" min="1" required>
 
-宝宝椅 Baby Chairs:<br>
-<input type="number" id="babyChairs" min="0" value="0"><br>
+<label>宝宝椅 Baby Chairs</label>
+<input type="number" id="babyChairs" min="0" value="0">
 
-座位选择 Seating:<br>
+<label>座位选择 Seating</label>
 <select id="seating">
   <option value="indoor">室内 Indoor</option>
   <option value="outdoor">室外 Outdoor</option>
   <option value="any">随意 Fastest Available</option>
-</select><br>
+</select>
 
 <button type="submit">提交 Submit</button>
 
 </form>
+</div>
 
 </body>
 </html>
