@@ -2,10 +2,68 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f2f2f2;
+  margin:0;
+  padding:15px;
+}
+
+h2 {
+  text-align:center;
+}
+
+.section-title {
+  margin-top:30px;
+  font-size:20px;
+  font-weight:bold;
+}
+
+.card {
+  background:white;
+  padding:15px;
+  margin-top:10px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+button {
+  padding:8px 12px;
+  margin:5px 5px 0 0;
+  border:none;
+  border-radius:6px;
+  font-size:14px;
+}
+
+.btn-confirm { background:#28a745; color:white; }
+.btn-complete { background:#007bff; color:white; }
+.btn-cancel { background:#dc3545; color:white; }
+.btn-whatsapp { background:#25D366; color:white; }
+
+input {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+hr {
+  margin:40px 0;
+  border:2px solid black;
+}
+
+@media(min-width:768px){
+  body { padding:30px; }
+}
+</style>
 
 <script>
 const firebaseConfig = {
@@ -29,8 +87,7 @@ function today(){
 }
 
 function checkPassword(){
-  const input = document.getElementById("password").value;
-  if(input === "1234"){
+  if(document.getElementById("password").value==="1234"){
     document.getElementById("login").style.display="none";
     document.getElementById("panel").style.display="block";
     loadData();
@@ -41,127 +98,86 @@ function checkPassword(){
 
 function openWhatsApp(phone){
   if(!phone) return;
-  const clean = phone.replace("+","");
-  window.open("https://wa.me/"+clean,"_blank");
+  window.open("https://wa.me/"+phone.replace("+",""),"_blank");
 }
 
 function updateStatus(id,status){
-
-  const updateData = {
-    status: status
-  };
-
-  if(status === "completed" || status === "cancelled"){
+  let updateData = { status:status };
+  if(status==="completed"||status==="cancelled"){
     updateData.finishedAt = firebase.firestore.FieldValue.serverTimestamp();
   }
-
   db.collection("queues").doc(id).update(updateData);
 }
 
 function assignTable(id){
   const tableNumber = prompt("请输入桌号:");
   if(!tableNumber) return;
-
   db.collection("queues").doc(id).update({
     status:"confirmed",
-    tableNumber: tableNumber
+    tableNumber:tableNumber
   });
 }
 
 function renderList(list, container){
-  container.innerHTML = "";
-
+  container.innerHTML="";
   list.forEach(item=>{
-    container.innerHTML += `
-    <div style="border:1px solid #ccc;margin:8px;padding:12px;">
+    container.innerHTML+=`
+    <div class="card">
+      <b>${item.queueNumber}</b><br>
+      📅 ${item.date} | ⏰ ${item.time}<br>
+      👤 ${item.name} | 📞 ${item.phone}<br>
+      👨 成人:${item.adults} 👶:${item.babyChairs}<br>
+      🏷 桌号:${item.tableNumber||"-"}<br>
+      📌 状态:${item.status}<br>
 
-    📅 ${item.date || "-"} |
-    ⏰ ${item.time || "-"} |
-    🆔 <b>${item.queueNumber || "-"}</b><br>
+      <button class="btn-whatsapp" onclick="openWhatsApp('${item.phone}')">WhatsApp</button>
 
-    👤 ${item.name || "-"} |
-    📞 ${item.phone || "-"}<br>
+      ${item.status==="waiting" ?
+      `<button class="btn-confirm" onclick="assignTable('${item.id}')">Confirm + Table</button>`:""}
 
-    👨 成人:${item.adults || 0} |
-    👶 宝宝椅:${item.babyChairs || 0} |
-    🏷 桌号:${item.tableNumber || "-"}<br>
+      ${item.status==="confirmed" ?
+      `<button class="btn-complete" onclick="updateStatus('${item.id}','completed')">Completed</button>`:""}
 
-    📌 状态:${item.status || "-"}<br><br>
-
-    <button onclick="openWhatsApp('${item.phone}')">
-      WhatsApp
-    </button>
-
-    ${item.status==="waiting" ?
-      `<button onclick="assignTable('${item.id}')">
-        Confirm + Table
-      </button>` : ""}
-
-    ${item.status==="confirmed" ?
-      `<button onclick="updateStatus('${item.id}','completed')">
-        Completed
-      </button>` : ""}
-
-    <button onclick="updateStatus('${item.id}','cancelled')">
-      Cancel
-    </button>
-
+      <button class="btn-cancel" onclick="updateStatus('${item.id}','cancelled')">Cancel</button>
     </div>
     `;
   });
 }
 
 function applyFilter(){
-
-  const keyword = document.getElementById("search").value.toLowerCase();
-
-  let active = [];
-  let finished = [];
+  const keyword=document.getElementById("search").value.toLowerCase();
+  let active=[], finished=[];
 
   allData.forEach(data=>{
-
-    const match =
-      (data.name || "").toLowerCase().includes(keyword) ||
-      (data.phone || "").includes(keyword) ||
-      String(data.queueNumber || "").includes(keyword);
+    const match=
+      (data.name||"").toLowerCase().includes(keyword)||
+      (data.phone||"").includes(keyword)||
+      String(data.queueNumber||"").includes(keyword);
 
     if(match){
-
-      if(data.status==="waiting" || data.status==="confirmed"){
+      if(data.status==="waiting"||data.status==="confirmed"){
         active.push(data);
       }else{
         finished.push(data);
       }
-
     }
   });
 
-  // 🟢 Waiting + Confirmed → 最早在上
-  active.sort((a,b)=>
-    (a.timestamp?.seconds||0)-(b.timestamp?.seconds||0)
-  );
+  active.sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
+  finished.sort((a,b)=>(b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0));
 
-  // 🔴 Completed + Cancelled → 最新在上
-  finished.sort((a,b)=>
-    (b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0)
-  );
-
-  renderList(active, document.getElementById("activeList"));
-  renderList(finished, document.getElementById("finishedList"));
+  renderList(active,document.getElementById("activeList"));
+  renderList(finished,document.getElementById("finishedList"));
 }
 
 function loadData(){
-
   db.collection("queues")
   .where("date","==",today())
   .onSnapshot(snapshot=>{
-
-    allData = [];
-
+    allData=[];
     snapshot.forEach(doc=>{
-      allData.push({...doc.data(), id: doc.id});
+      allData.push({...doc.data(),id:doc.id});
     });
-
     applyFilter();
   });
 }
@@ -177,25 +193,17 @@ function loadData(){
 </div>
 
 <div id="panel" style="display:none;">
+  <h2>后台管理系统</h2>
 
-<h2>后台管理系统</h2>
+  <input type="text" id="search" placeholder="🔍 搜索名字 / 电话 / 排号" oninput="applyFilter()">
 
-<input 
-  type="text" 
-  id="search" 
-  placeholder="🔍 搜索名字 / 电话 / 排号"
-  oninput="applyFilter()"
-  style="width:300px;padding:6px;margin-bottom:15px;"
->
+  <div class="section-title">🟢 Waiting + Confirmed</div>
+  <div id="activeList"></div>
 
-<h3>🟢 Waiting + Confirmed</h3>
-<div id="activeList"></div>
+  <hr>
 
-<hr style="margin:30px 0; border:2px solid black;">
-
-<h3>🔴 Cancelled + Completed</h3>
-<div id="finishedList"></div>
-
+  <div class="section-title">🔴 Cancelled + Completed</div>
+  <div id="finishedList"></div>
 </div>
 
 </body>
