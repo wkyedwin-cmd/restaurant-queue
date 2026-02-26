@@ -48,7 +48,7 @@ h2 {
 }
 
 .table-number {
-  font-size:28px;
+  font-size:26px;
   font-weight:bold;
   color:#d9534f;
 }
@@ -65,6 +65,7 @@ button {
   border:none;
   border-radius:8px;
   font-size:16px;
+  cursor:pointer;
 }
 
 .btn-confirm { background:#28a745; color:white; }
@@ -72,6 +73,7 @@ button {
 .btn-cancel { background:#dc3545; color:white; }
 .btn-whatsapp { background:#25D366; color:white; }
 .btn-whatsapp-clicked { background:gray; color:white; }
+.btn-export { background:black; color:white; }
 
 input {
   width:100%;
@@ -148,10 +150,68 @@ function assignTable(id){
   });
 }
 
+function editPeople(id, currentAdults, currentBaby){
+
+  const newAdults = prompt("修改成人数量 (>=1):", currentAdults);
+  if(newAdults === null) return;
+
+  const newBaby = prompt("修改宝宝椅数量 (>=0):", currentBaby);
+  if(newBaby === null) return;
+
+  // 验证
+  if(newAdults === "" || newBaby === ""){
+    alert("不能留空！");
+    return;
+  }
+
+  if(isNaN(newAdults) || isNaN(newBaby)){
+    alert("必须是数字！");
+    return;
+  }
+
+  if(parseInt(newAdults) < 1){
+    alert("成人数量不能小于1！");
+    return;
+  }
+
+  if(parseInt(newBaby) < 0){
+    alert("宝宝椅不能小于0！");
+    return;
+  }
+
+  db.collection("queues").doc(id).update({
+    adults: parseInt(newAdults),
+    babyChairs: parseInt(newBaby)
+  });
+}
+
 function formatTime(timestamp){
   if(!timestamp) return "";
   const date = timestamp.toDate();
   return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function exportTodayCSV(){
+  const todayDate = today();
+  let csv = "QueueNumber,Name,Phone,Adults,BabyChairs,TableNumber,Status,LastContacted\n";
+
+  allData.forEach(item=>{
+    const lastContact = item.lastContacted 
+      ? item.lastContacted.toDate().toLocaleTimeString()
+      : "";
+
+    csv += `"${item.queueNumber}","${item.name}","${item.phone}",${item.adults},${item.babyChairs},"${item.tableNumber||""}","${item.status}","${lastContact}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "queue-" + todayDate + ".csv";
+  a.click();
+
+  window.URL.revokeObjectURL(url);
 }
 
 function renderList(list, container){
@@ -179,6 +239,10 @@ function renderList(list, container){
         class="${item.lastContacted ? 'btn-whatsapp-clicked' : 'btn-whatsapp'}"
         onclick="openWhatsApp('${item.id}','${item.phone}')">
         WhatsApp
+      </button>
+
+      <button onclick="editPeople('${item.id}','${item.adults}','${item.babyChairs}')">
+        Edit 人数
       </button>
 
       ${item.status==="waiting" ?
@@ -243,6 +307,8 @@ function loadData(){
 
 <div id="panel" style="display:none;">
   <h2>后台管理系统</h2>
+
+  <button class="btn-export" onclick="exportTodayCSV()">⬇ 导出今日排号</button>
 
   <input type="text" id="search" placeholder="🔍 搜索名字 / 电话 / 排号" oninput="applyFilter()">
 
