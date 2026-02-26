@@ -18,50 +18,73 @@ body {
 
 h2 {
   text-align:center;
+  font-size:26px;
 }
 
 .section-title {
-  margin-top:30px;
-  font-size:20px;
+  margin-top:35px;
+  font-size:22px;
   font-weight:bold;
 }
 
 .card {
   background:white;
-  padding:15px;
-  margin-top:10px;
-  border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  padding:20px;
+  margin-top:15px;
+  border-radius:12px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.12);
+  font-size:18px;
+  line-height:1.6;
+}
+
+.queue-number {
+  font-size:30px;
+  font-weight:bold;
+}
+
+.customer-name {
+  font-size:22px;
+  font-weight:bold;
+}
+
+.table-number {
+  font-size:28px;
+  font-weight:bold;
+  color:#d9534f;
+}
+
+.last-contacted {
+  font-size:16px;
+  color:gray;
+  margin-top:5px;
 }
 
 button {
-  padding:8px 12px;
-  margin:5px 5px 0 0;
+  padding:10px 14px;
+  margin:8px 6px 0 0;
   border:none;
-  border-radius:6px;
-  font-size:14px;
+  border-radius:8px;
+  font-size:16px;
 }
 
 .btn-confirm { background:#28a745; color:white; }
 .btn-complete { background:#007bff; color:white; }
 .btn-cancel { background:#dc3545; color:white; }
 .btn-whatsapp { background:#25D366; color:white; }
+.btn-whatsapp-clicked { background:gray; color:white; }
 
 input {
   width:100%;
-  padding:10px;
-  margin-top:10px;
+  padding:12px;
+  margin-top:15px;
   border-radius:8px;
   border:1px solid #ccc;
+  font-size:16px;
 }
 
 hr {
-  margin:40px 0;
+  margin:45px 0;
   border:2px solid black;
-}
-
-@media(min-width:768px){
-  body { padding:30px; }
 }
 </style>
 
@@ -96,8 +119,15 @@ function checkPassword(){
   }
 }
 
-function openWhatsApp(phone){
+function openWhatsApp(id, phone){
   if(!phone) return;
+
+  const now = new Date();
+
+  db.collection("queues").doc(id).update({
+    lastContacted: firebase.firestore.Timestamp.fromDate(now)
+  });
+
   window.open("https://wa.me/"+phone.replace("+",""),"_blank");
 }
 
@@ -118,19 +148,38 @@ function assignTable(id){
   });
 }
 
+function formatTime(timestamp){
+  if(!timestamp) return "";
+  const date = timestamp.toDate();
+  return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
 function renderList(list, container){
   container.innerHTML="";
   list.forEach(item=>{
     container.innerHTML+=`
     <div class="card">
-      <b>${item.queueNumber}</b><br>
+      <div class="queue-number">🆔 ${item.queueNumber}</div>
       📅 ${item.date} | ⏰ ${item.time}<br>
-      👤 ${item.name} | 📞 ${item.phone}<br>
+
+      <div class="customer-name">👤 ${item.name}</div>
+      📞 ${item.phone}<br>
+
       👨 成人:${item.adults} 👶:${item.babyChairs}<br>
-      🏷 桌号:${item.tableNumber||"-"}<br>
+
+      <div class="table-number">🏷 桌号: ${item.tableNumber||"-"}</div>
+
+      ${item.lastContacted ? 
+        `<div class="last-contacted">Last contacted: ${formatTime(item.lastContacted)}</div>` 
+        : ""}
+
       📌 状态:${item.status}<br>
 
-      <button class="btn-whatsapp" onclick="openWhatsApp('${item.phone}')">WhatsApp</button>
+      <button 
+        class="${item.lastContacted ? 'btn-whatsapp-clicked' : 'btn-whatsapp'}"
+        onclick="openWhatsApp('${item.id}','${item.phone}')">
+        WhatsApp
+      </button>
 
       ${item.status==="waiting" ?
       `<button class="btn-confirm" onclick="assignTable('${item.id}')">Confirm + Table</button>`:""}
