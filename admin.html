@@ -3,70 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin System</title>
+<title>Restaurant Queue</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
 body{
-  font-family:Arial;
+  font-family: Arial, sans-serif;
+  background:#f7f7f7;
   margin:0;
-  padding:15px;
-  background:#f4f6f9;
+  padding:20px;
+}
+
+.container{
+  max-width:500px;
+  margin:auto;
+  background:white;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
 }
 
 h2{
-  margin-top:25px;
-}
-
-.stats{
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
-  font-weight:bold;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(80px,1fr));
-  gap:10px;
-}
-
-.table-box{
-  padding:12px;
   text-align:center;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
-  color:white;
+  font-size:28px;
 }
 
-.available{background:#28a745;}
-.occupied{background:#dc3545;}
-.cleaning{background:#ffc107;color:black;}
-
-.card{
-  background:white;
-  padding:12px;
-  margin-bottom:10px;
-  border-radius:8px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.08);
+input,select{
+  width:100%;
+  padding:14px;
+  margin-top:15px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:18px;
 }
 
 button{
-  padding:6px 10px;
-  margin-top:6px;
+  width:100%;
+  padding:15px;
+  margin-top:20px;
   border:none;
-  border-radius:6px;
+  border-radius:10px;
+  font-size:20px;
+  background:black;
+  color:white;
   cursor:pointer;
 }
 
-.confirmBtn{background:#28a745;color:white;}
-.doneBtn{background:#007bff;color:white;}
-.cancelBtn{background:#dc3545;color:white;}
+.result{
+  margin-top:25px;
+  padding:20px;
+  background:#f2f2f2;
+  border-radius:12px;
+  text-align:center;
+}
+
+.queue-number{
+  font-size:36px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.waiting-info{
+  font-size:22px;
+  margin-top:15px;
+  font-weight:bold;
+}
+
+.notice{
+  margin-top:20px;
+  font-size:14px;
+  color:#555;
+}
 </style>
 
 <script>
@@ -74,196 +83,155 @@ const firebaseConfig = {
   apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
   authDomain: "yunnans-1u.firebaseapp.com",
   projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 const db = firebase.firestore();
 
-const tables=[
-"A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15","A16","A17","A18","A19","A20","A21","A22","A23",
-"B1","B2","B3","B4","B5","B6","B7","B8",
-"VIP 1","VIP 2","VIP 3",
-"C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14"
-];
-
-let tableStatus={};
-let allQueues=[];
+let myTimestamp = null;
+let unsubscribe = null;
 
 function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-function checkPassword(){
-  if(document.getElementById("password").value==="1234"){
-    document.getElementById("login").style.display="none";
-    document.getElementById("panel").style.display="block";
-    initTables();
-    loadQueues();
-  }else alert("Wrong password");
+function todayLetter(){
+  const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const day=new Date().getDate();
+  return letters[day % 26];
 }
 
-function initTables(){
-  tables.forEach(t=>{
-    db.collection("tables").doc(t).set({status:"available"},{merge:true});
-  });
-
-  db.collection("tables").onSnapshot(snapshot=>{
-    tableStatus={};
-    snapshot.forEach(doc=>{
-      tableStatus[doc.id]=doc.data().status;
-    });
-    renderTables();
-  });
+function randomNumber(){
+  return Math.floor(100 + Math.random() * 900);
 }
 
-function renderTables(){
-  const container=document.getElementById("tableGrid");
-  container.innerHTML="";
-
-  tables.forEach(t=>{
-    const status=tableStatus[t]||"available";
-    container.innerHTML+=`
-      <div class="table-box ${status}" onclick="toggleTable('${t}')">
-        ${t}
-      </div>
-    `;
-  });
-
-  updateStats();
+function generateQueueNumber(){
+  return todayLetter()+randomNumber();
 }
 
-function toggleTable(table){
-  let current=tableStatus[table];
+function submitForm(){
 
-  let next="available";
-  if(current==="available") next="cleaning";
-  else if(current==="cleaning") next="occupied";
+  const name=document.getElementById("name").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const adults=document.getElementById("adults").value;
+  const baby=document.getElementById("baby").value;
 
-  db.collection("tables").doc(table).update({status:next});
-}
-
-function confirmWithTable(id){
-  const available=tables.filter(t=>tableStatus[t]==="available");
-
-  if(available.length===0){
-    alert("没有可用桌子");
+  if(!name||!phone||!adults){
+    alert("请填写完整资料 / Please complete all fields");
     return;
   }
 
-  const choice=prompt("可用桌子:\n"+available.join(", "));
-  if(!choice || !available.includes(choice)) return;
+  const queueNumber=generateQueueNumber();
+  const now=new Date();
+  myTimestamp = firebase.firestore.Timestamp.fromDate(now);
 
-  db.collection("queues").doc(id).update({
-    status:"confirmed",
-    tableNumber:choice
-  });
+  const data={
+    name:name,
+    phone:phone,
+    adults:parseInt(adults),
+    babyChairs:parseInt(baby)||0,
+    queueNumber:queueNumber,
+    status:"waiting",
+    date:today(),
+    time:now.toLocaleTimeString(),
+    timestamp:myTimestamp
+  };
 
-  db.collection("tables").doc(choice).update({
-    status:"occupied"
+  db.collection("queues").add(data).then(()=>{
+    showResult(queueNumber);
+    startRealtimeListener();
   });
 }
 
-function completeQueue(id,table){
-  db.collection("queues").doc(id).update({
-    status:"completed",
-    completedAt:Date.now()
-  });
+function startRealtimeListener(){
 
-  if(table){
-    db.collection("tables").doc(table).update({
-      status:"cleaning"
+  unsubscribe = db.collection("queues")
+    .where("date","==",today())
+    .onSnapshot(snapshot=>{
+      let count=0;
+
+      snapshot.forEach(doc=>{
+        const d=doc.data();
+        if(
+          (d.status==="waiting"||d.status==="confirmed") &&
+          d.timestamp.seconds < myTimestamp.seconds
+        ){
+          count++;
+        }
+      });
+
+      updateWaitingCount(count);
     });
-  }
 }
 
-function cancelQueue(id){
-  db.collection("queues").doc(id).update({
-    status:"cancelled",
-    completedAt:Date.now()
-  });
-}
+function showResult(queueNumber){
 
-function loadQueues(){
-  db.collection("queues")
-  .where("date","==",today())
-  .onSnapshot(snapshot=>{
-    allQueues=[];
-    snapshot.forEach(doc=>{
-      allQueues.push({...doc.data(),id:doc.id});
-    });
-    renderQueues();
-    updateStats();
-  });
-}
+  document.getElementById("form").style.display="none";
 
-function renderQueues(){
-  const active=document.getElementById("active");
-  const finished=document.getElementById("finished");
+  document.getElementById("result").innerHTML=`
+    <div class="result">
+      <div>您的排号 / Your Queue Number</div>
+      <div class="queue-number">${queueNumber}</div>
 
-  active.innerHTML="";
-  finished.innerHTML="";
-
-  const waiting=allQueues.filter(q=>q.status==="waiting"||q.status==="confirmed");
-
-  const done=allQueues.filter(q=>q.status==="completed"||q.status==="cancelled");
-
-  waiting.forEach(q=>{
-    active.innerHTML+=`
-      <div class="card">
-        <b>${q.queueNumber}</b> - ${q.name}
-        <br>桌号: ${q.tableNumber||"-"}
-        <br>状态: ${q.status}
-        <br>
-        ${q.status==="waiting"?
-          `<button class="confirmBtn" onclick="confirmWithTable('${q.id}')">Confirm + Table</button>`:""}
-        ${q.status==="confirmed"?
-          `<button class="doneBtn" onclick="completeQueue('${q.id}','${q.tableNumber}')">Completed</button>`:""}
-        <button class="cancelBtn" onclick="cancelQueue('${q.id}')">Cancel</button>
+      <div class="waiting-info" id="waitingCount">
+        正在计算前面人数...
       </div>
-    `;
-  });
 
-  done.forEach(q=>{
-    finished.innerHTML+=`
-      <div class="card">
-        <b>${q.queueNumber}</b>
-        <br>桌号: ${q.tableNumber||"-"}
-        <br>状态: ${q.status}
+      <div class="notice">
+        ⚠ 前面的排号未必100%准确，我们有权做更改。<br>
+        Queue position may not be 100% accurate.  
+        Management reserves the right to adjust.
       </div>
-    `;
-  });
+    </div>
+  `;
 }
 
-function updateStats(){
-  const using=tables.filter(t=>tableStatus[t]==="occupied").length;
-  const completed=allQueues.filter(q=>q.status==="completed").length;
+function updateWaitingCount(count){
+  const el=document.getElementById("waitingCount");
+  if(!el) return;
 
-  document.getElementById("stats").innerHTML=
-  `当前使用中桌子: ${using} ｜ 今日完成: ${completed}`;
+  el.innerHTML=`
+    您前面还有 ${count} 组顾客<br>
+    There are ${count} groups ahead of you
+  `;
 }
 </script>
 </head>
 
 <body>
 
-<div id="login">
-  <h2>Admin Login</h2>
-  <input type="password" id="password">
-  <button onclick="checkPassword()">Login</button>
+<div class="container">
+
+<h2>餐厅排号 / Queue Registration</h2>
+
+<div id="form">
+
+<input type="text" id="name" placeholder="姓名 Name">
+<input type="text" id="phone" placeholder="电话号码 Phone Number">
+
+<select id="adults">
+  <option value="">成人人数 Adults</option>
+  <option>1</option><option>2</option><option>3</option>
+  <option>4</option><option>5</option><option>6</option>
+  <option>7</option><option>8</option>
+</select>
+
+<select id="baby">
+  <option value="0">宝宝椅 Baby Chair (0)</option>
+  <option>1</option><option>2</option>
+</select>
+
+<button onclick="submitForm()">提交 Submit</button>
+
 </div>
 
-<div id="panel" style="display:none;">
-
-<div class="stats" id="stats"></div>
-
-<h2>🟢 桌子管理</h2>
-<div class="grid" id="tableGrid"></div>
-
-<h2>👥 Waiting / Confirmed</h2>
-<div id="active"></div>
-
-<h2>✅ Completed / Cancelled</h2>
-<div id="finished"></div>
+<div id="result"></div>
 
 </div>
 
