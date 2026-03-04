@@ -3,79 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Restaurant Queue</title>
+<title>Admin Panel</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
 body{
-  font-family: Arial, sans-serif;
-  background:#f7f7f7;
+  font-family:Arial;
   margin:0;
-  padding:20px;
+  padding:15px;
+  background:#f4f4f4;
 }
 
-.container{
-  max-width:500px;
-  margin:auto;
+.card{
   background:white;
-  padding:25px;
-  border-radius:15px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.15);
-}
-
-h2{
-  text-align:center;
-  font-size:28px;
-}
-
-input,select{
-  width:100%;
-  padding:14px;
-  margin-top:15px;
+  padding:15px;
+  margin-bottom:15px;
   border-radius:10px;
-  border:1px solid #ccc;
-  font-size:18px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+.big-table{
+  font-size:28px;
+  font-weight:bold;
+  color:#007bff;
 }
 
 button{
-  width:100%;
-  padding:15px;
-  margin-top:20px;
+  padding:8px 12px;
+  margin:4px 4px 0 0;
   border:none;
-  border-radius:10px;
-  font-size:20px;
-  background:black;
-  color:white;
+  border-radius:6px;
   cursor:pointer;
 }
 
-.result{
-  margin-top:25px;
-  padding:20px;
-  background:#f2f2f2;
-  border-radius:12px;
-  text-align:center;
-}
-
-.queue-number{
-  font-size:36px;
-  font-weight:bold;
-  margin-top:10px;
-}
-
-.waiting-info{
-  font-size:22px;
-  margin-top:15px;
-  font-weight:bold;
-}
-
-.notice{
-  margin-top:20px;
-  font-size:14px;
-  color:#555;
-}
+.confirmBtn{background:#28a745;color:white;}
+.doneBtn{background:#333;color:white;}
+.cancelBtn{background:#dc3545;color:white;}
+.waBtn{background:#25D366;color:white;}
 </style>
 
 <script>
@@ -88,151 +54,164 @@ const firebaseConfig = {
   appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let myTimestamp = null;
-let unsubscribe = null;
+let allData=[];
 
 function today(){
   return new Date().toISOString().split("T")[0];
 }
 
-function todayLetter(){
-  const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const day=new Date().getDate();
-  return letters[day % 26];
-}
-
-function randomNumber(){
-  return Math.floor(100 + Math.random() * 900);
-}
-
-function generateQueueNumber(){
-  return todayLetter()+randomNumber();
-}
-
-function submitForm(){
-
-  const name=document.getElementById("name").value.trim();
-  const phone=document.getElementById("phone").value.trim();
-  const adults=document.getElementById("adults").value;
-  const baby=document.getElementById("baby").value;
-
-  if(!name||!phone||!adults){
-    alert("请填写完整资料 / Please complete all fields");
-    return;
+function checkPassword(){
+  if(document.getElementById("password").value==="1234"){
+    document.getElementById("login").style.display="none";
+    document.getElementById("panel").style.display="block";
+    loadData();
+  }else{
+    alert("Wrong password");
   }
+}
 
-  const queueNumber=generateQueueNumber();
-  const now=new Date();
-  myTimestamp = firebase.firestore.Timestamp.fromDate(now);
+function openWhatsApp(id,phone){
+  const now=new Date().toLocaleTimeString();
+  db.collection("queues").doc(id).update({
+    lastContacted: now
+  });
+  window.open("https://wa.me/"+phone.replace("+",""),"_blank");
+}
 
-  const data={
-    name:name,
-    phone:phone,
-    adults:parseInt(adults),
-    babyChairs:parseInt(baby)||0,
-    queueNumber:queueNumber,
-    status:"waiting",
-    date:today(),
-    time:now.toLocaleTimeString(),
-    timestamp:myTimestamp
-  };
-
-  db.collection("queues").add(data).then(()=>{
-    showResult(queueNumber);
-    startRealtimeListener();
+function updateStatus(id,status){
+  db.collection("queues").doc(id).update({
+    status:status,
+    completedAt: Date.now()
   });
 }
 
-function startRealtimeListener(){
+function confirmWithTable(id){
+  const tables=[
 
-  unsubscribe = db.collection("queues")
-    .where("date","==",today())
-    .onSnapshot(snapshot=>{
-      let count=0;
+    "A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15","A16","A17","A18","A19","A20","A21","A22","A23",
 
-      snapshot.forEach(doc=>{
-        const d=doc.data();
-        if(
-          (d.status==="waiting"||d.status==="confirmed") &&
-          d.timestamp.seconds < myTimestamp.seconds
-        ){
-          count++;
-        }
+    "B1","B2","B3","B4","B5","B6","B7","B8",
+
+    "VIP 1","VIP 2","VIP 3",
+
+    "C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14"
+  ];
+
+  let options=tables.map(t=>`<option value="${t}">${t}</option>`).join("");
+
+  const selectHTML=`
+    <select id="tableSelect" style="width:100%;padding:8px;font-size:16px;">
+      ${options}
+    </select>
+  `;
+
+  const div=document.createElement("div");
+  div.innerHTML=selectHTML;
+
+  if(confirm("按 OK 后选择桌号")){
+    setTimeout(()=>{
+      const table=prompt("请输入桌号 (如 A1, VIP 1):");
+      if(!table) return;
+      db.collection("queues").doc(id).update({
+        status:"confirmed",
+        tableNumber:table
       });
-
-      updateWaitingCount(count);
-    });
+    },100);
+  }
 }
 
-function showResult(queueNumber){
+function updateAdults(id,current){
+  const newVal=prompt("修改人数:",current);
+  if(!newVal) return;
+  const num=parseInt(newVal);
+  if(isNaN(num)||num<1){
+    alert("人数必须为数字且 ≥1");
+    return;
+  }
+  db.collection("queues").doc(id).update({adults:num});
+}
 
-  document.getElementById("form").style.display="none";
+function render(list,container,reverse=false){
+  container.innerHTML="";
+  if(reverse) list=list.reverse();
 
-  document.getElementById("result").innerHTML=`
-    <div class="result">
-      <div>您的排号 / Your Queue Number</div>
-      <div class="queue-number">${queueNumber}</div>
+  list.forEach(item=>{
+    container.innerHTML+=`
+    <div class="card">
+      <div><b>${item.queueNumber}</b></div>
+      👤 ${item.name}<br>
+      📞 ${item.phone}<br>
+      👨 人数: ${item.adults}
+      <button onclick="updateAdults('${item.id}',${item.adults})">修改人数</button>
+      <br>
+      🏷 桌号:
+      <div class="big-table">${item.tableNumber||"-"}</div>
+      📌 状态: ${item.status}
+      ${item.lastContacted? `<br>📩 Last contacted: ${item.lastContacted}`:""}
+      <br><br>
 
-      <div class="waiting-info" id="waitingCount">
-        正在计算前面人数...
-      </div>
+      <button class="waBtn" onclick="openWhatsApp('${item.id}','${item.phone}')">WhatsApp</button>
 
-      <div class="notice">
-        ⚠ 前面的排号未必100%准确，我们有权做更改。<br>
-        Queue position may not be 100% accurate.  
-        Management reserves the right to adjust.
-      </div>
+      ${item.status==="waiting"?
+        `<button class="confirmBtn" onclick="confirmWithTable('${item.id}')">
+          Confirm + Table
+        </button>`:""}
+
+      ${item.status==="confirmed"?
+        `<button class="doneBtn" onclick="updateStatus('${item.id}','completed')">
+          Completed
+        </button>`:""}
+
+      <button class="cancelBtn" onclick="updateStatus('${item.id}','cancelled')">
+        Cancel
+      </button>
+
     </div>
-  `;
+    `;
+  });
 }
 
-function updateWaitingCount(count){
-  const el=document.getElementById("waitingCount");
-  if(!el) return;
+function loadData(){
+  db.collection("queues")
+  .where("date","==",today())
+  .onSnapshot(snapshot=>{
+    allData=[];
+    snapshot.forEach(doc=>{
+      allData.push({...doc.data(),id:doc.id});
+    });
 
-  el.innerHTML=`
-    您前面还有 ${count} 组顾客<br>
-    There are ${count} groups ahead of you
-  `;
+    const active=allData.filter(d=>d.status==="waiting"||d.status==="confirmed")
+      .sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
+
+    const finished=allData.filter(d=>d.status==="completed"||d.status==="cancelled")
+      .sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+
+    render(active,document.getElementById("active"));
+    render(finished,document.getElementById("finished"));
+  });
 }
 </script>
 </head>
 
 <body>
 
-<div class="container">
-
-<h2>餐厅排号 / Queue Registration</h2>
-
-<div id="form">
-
-<input type="text" id="name" placeholder="姓名 Name">
-<input type="text" id="phone" placeholder="电话号码 Phone Number">
-
-<select id="adults">
-  <option value="">成人人数 Adults</option>
-  <option>1</option><option>2</option><option>3</option>
-  <option>4</option><option>5</option><option>6</option>
-  <option>7</option><option>8</option>
-</select>
-
-<select id="baby">
-  <option value="0">宝宝椅 Baby Chair (0)</option>
-  <option>1</option><option>2</option>
-</select>
-
-<button onclick="submitForm()">提交 Submit</button>
-
+<div id="login">
+  <h2>Admin Login</h2>
+  <input type="password" id="password">
+  <button onclick="checkPassword()">Login</button>
 </div>
 
-<div id="result"></div>
+<div id="panel" style="display:none;">
+  <h2>Waiting / Confirmed</h2>
+  <div id="active"></div>
 
+  <hr>
+
+  <h2>Completed / Cancelled</h2>
+  <div id="finished"></div>
 </div>
 
 </body>
