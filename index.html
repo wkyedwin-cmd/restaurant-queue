@@ -5,66 +5,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Restaurant Queue</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<!-- intl tel input -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css"/>
-<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
-
 <style>
-body {
+body{
   font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  display: flex;
-  justify-content: center;
-  padding: 20px;
+  background:#f7f7f7;
+  margin:0;
+  padding:20px;
 }
 
-.container {
-  background: white;
-  width: 100%;
-  max-width: 420px;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+.container{
+  max-width:500px;
+  margin:auto;
+  background:white;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
 }
 
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
+h2{
+  text-align:center;
+  font-size:28px;
 }
 
-label {
-  font-weight: bold;
-  display: block;
-  margin-top: 12px;
+input,select{
+  width:100%;
+  padding:14px;
+  margin-top:15px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:18px;
 }
 
-input, select {
-  width: 100%;
-  padding: 12px;
-  font-size: 16px;
-  margin-top: 6px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+button{
+  width:100%;
+  padding:15px;
+  margin-top:20px;
+  border:none;
+  border-radius:10px;
+  font-size:20px;
+  background:black;
+  color:white;
+  cursor:pointer;
 }
 
-button {
-  width: 100%;
-  padding: 14px;
-  font-size: 18px;
-  margin-top: 20px;
-  border-radius: 10px;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  font-weight: bold;
+.result{
+  margin-top:25px;
+  padding:20px;
+  background:#f2f2f2;
+  border-radius:12px;
+  text-align:center;
 }
 
-button:hover {
-  background-color: #0056b3;
+.queue-number{
+  font-size:36px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.waiting-info{
+  font-size:22px;
+  margin-top:15px;
+  font-weight:bold;
+}
+
+.notice{
+  margin-top:20px;
+  font-size:14px;
+  color:#555;
 }
 </style>
 
@@ -83,70 +93,113 @@ if (!firebase.apps.length) {
 }
 
 const db = firebase.firestore();
-let phoneInput;
 
-window.onload = function(){
-  phoneInput = window.intlTelInput(document.querySelector("#phone"), {
-    initialCountry: "my",
-    preferredCountries: ["my","sg","cn"],
-    separateDialCode: false,
-    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
-  });
-};
+let myTimestamp = null;
+let unsubscribe = null;
 
-function getDailyLetter() {
-  const today = new Date();
-  const start = new Date(today.getFullYear(), 0, 0);
-  const diff = today - start;
-  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  return letters[dayOfYear % 26];
+function today(){
+  return new Date().toISOString().split("T")[0];
 }
 
-async function generateDailyQueueNumber() {
-  const today = new Date().toISOString().split("T")[0];
-  const dailyLetter = getDailyLetter();
-
-  while (true) {
-    const randomNumber = Math.floor(Math.random() * 999) + 1;
-    const formattedNumber = String(randomNumber).padStart(3, "0");
-    const fullQueueNumber = dailyLetter + formattedNumber;
-
-    const snapshot = await db.collection("queues")
-      .where("date","==",today)
-      .where("queueNumber","==",fullQueueNumber)
-      .get();
-
-    if (snapshot.empty) return fullQueueNumber;
-  }
+function todayLetter(){
+  const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const day=new Date().getDate();
+  return letters[day % 26];
 }
 
-async function submitForm(e){
-  e.preventDefault();
+function randomNumber(){
+  return Math.floor(100 + Math.random() * 900);
+}
 
-  if(!phoneInput.isValidNumber()){
-    alert("请输入正确的电话号码 / Please enter valid phone number");
+function generateQueueNumber(){
+  return todayLetter()+randomNumber();
+}
+
+function submitForm(){
+
+  const name=document.getElementById("name").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const adults=document.getElementById("adults").value;
+  const baby=document.getElementById("baby").value;
+
+  if(!name||!phone||!adults){
+    alert("请填写完整资料 / Please complete all fields");
     return;
   }
 
-  const queueNumber = await generateDailyQueueNumber();
+  const queueNumber=generateQueueNumber();
+  const now=new Date();
+  myTimestamp = firebase.firestore.Timestamp.fromDate(now);
 
-  await db.collection("queues").add({
-    queueNumber: queueNumber,
-    name: document.getElementById("name").value,
-    phone: phoneInput.getNumber(),
-    adults: parseInt(document.getElementById("adults").value),
-    babyChairs: parseInt(document.getElementById("babyChairs").value),
-    seating: document.getElementById("seating").value,
-    status: "waiting",
-    date: new Date().toISOString().split("T")[0],
-    time: new Date().toLocaleTimeString(),
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  const data={
+    name:name,
+    phone:phone,
+    adults:parseInt(adults),
+    babyChairs:parseInt(baby)||0,
+    queueNumber:queueNumber,
+    status:"waiting",
+    date:today(),
+    time:now.toLocaleTimeString(),
+    timestamp:myTimestamp
+  };
+
+  db.collection("queues").add(data).then(()=>{
+    showResult(queueNumber);
+    startRealtimeListener();
   });
+}
 
-  alert("您的排号是: " + queueNumber);
-  document.getElementById("queueForm").reset();
-  phoneInput.setCountry("my");
+function startRealtimeListener(){
+
+  unsubscribe = db.collection("queues")
+    .where("date","==",today())
+    .onSnapshot(snapshot=>{
+      let count=0;
+
+      snapshot.forEach(doc=>{
+        const d=doc.data();
+        if(
+          (d.status==="waiting"||d.status==="confirmed") &&
+          d.timestamp.seconds < myTimestamp.seconds
+        ){
+          count++;
+        }
+      });
+
+      updateWaitingCount(count);
+    });
+}
+
+function showResult(queueNumber){
+
+  document.getElementById("form").style.display="none";
+
+  document.getElementById("result").innerHTML=`
+    <div class="result">
+      <div>您的排号 / Your Queue Number</div>
+      <div class="queue-number">${queueNumber}</div>
+
+      <div class="waiting-info" id="waitingCount">
+        正在计算前面人数...
+      </div>
+
+      <div class="notice">
+        ⚠ 前面的排号未必100%准确，我们有权做更改。<br>
+        Queue position may not be 100% accurate.  
+        Management reserves the right to adjust.
+      </div>
+    </div>
+  `;
+}
+
+function updateWaitingCount(count){
+  const el=document.getElementById("waitingCount");
+  if(!el) return;
+
+  el.innerHTML=`
+    您前面还有 ${count} 组顾客<br>
+    There are ${count} groups ahead of you
+  `;
 }
 </script>
 </head>
@@ -154,32 +207,32 @@ async function submitForm(e){
 <body>
 
 <div class="container">
-<h2>餐厅排号系统</h2>
 
-<form id="queueForm" onsubmit="submitForm(event)">
+<h2>餐厅排号 / Queue Registration</h2>
 
-<label>姓名 Name</label>
-<input type="text" id="name" required>
+<div id="form">
 
-<label>电话 Phone</label>
-<input type="tel" id="phone" required>
+<input type="text" id="name" placeholder="姓名 Name">
+<input type="text" id="phone" placeholder="电话号码 Phone Number">
 
-<label>成人 Adults</label>
-<input type="number" id="adults" min="1" required>
-
-<label>宝宝椅 Baby Chairs</label>
-<input type="number" id="babyChairs" min="0" value="0">
-
-<label>座位选择 Seating</label>
-<select id="seating">
-  <option value="indoor">室内 Indoor</option>
-  <option value="outdoor">室外 Outdoor</option>
-  <option value="any">随意 Fastest Available</option>
+<select id="adults">
+  <option value="">成人人数 Adults</option>
+  <option>1</option><option>2</option><option>3</option>
+  <option>4</option><option>5</option><option>6</option>
+  <option>7</option><option>8</option>
 </select>
 
-<button type="submit">提交 Submit</button>
+<select id="baby">
+  <option value="0">宝宝椅 Baby Chair (0)</option>
+  <option>1</option><option>2</option>
+</select>
 
-</form>
+<button onclick="submitForm()">提交 Submit</button>
+
+</div>
+
+<div id="result"></div>
+
 </div>
 
 </body>
