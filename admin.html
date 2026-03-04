@@ -9,85 +9,39 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background:#f2f2f2;
+body{
+  font-family:Arial;
   margin:0;
   padding:15px;
+  background:#f4f4f4;
 }
 
-h2 {
-  text-align:center;
-  font-size:26px;
-}
-
-.section-title {
-  margin-top:35px;
-  font-size:22px;
-  font-weight:bold;
-}
-
-.card {
+.card{
   background:white;
-  padding:20px;
-  margin-top:15px;
-  border-radius:12px;
-  box-shadow:0 3px 8px rgba(0,0,0,0.12);
-  font-size:18px;
-  line-height:1.6;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:10px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.1);
 }
 
-.queue-number {
-  font-size:30px;
+.big-table{
+  font-size:28px;
   font-weight:bold;
+  color:#007bff;
 }
 
-.customer-name {
-  font-size:22px;
-  font-weight:bold;
-}
-
-.table-number {
-  font-size:26px;
-  font-weight:bold;
-  color:#d9534f;
-}
-
-.last-contacted {
-  font-size:16px;
-  color:gray;
-  margin-top:5px;
-}
-
-button {
-  padding:10px 14px;
-  margin:8px 6px 0 0;
+button{
+  padding:8px 12px;
+  margin:4px 4px 0 0;
   border:none;
-  border-radius:8px;
-  font-size:16px;
+  border-radius:6px;
   cursor:pointer;
 }
 
-.btn-confirm { background:#28a745; color:white; }
-.btn-complete { background:#007bff; color:white; }
-.btn-cancel { background:#dc3545; color:white; }
-.btn-whatsapp { background:#25D366; color:white; }
-.btn-whatsapp-clicked { background:gray; color:white; }
-.btn-export { background:black; color:white; }
-
-input {
-  width:100%;
-  padding:12px;
-  margin-top:15px;
-  border-radius:8px;
-  border:1px solid #ccc;
-  font-size:16px;
-}
-
-hr {
-  margin:45px 0;
-  border:2px solid black;
-}
+.confirmBtn{background:#28a745;color:white;}
+.doneBtn{background:#333;color:white;}
+.cancelBtn{background:#dc3545;color:white;}
+.waBtn{background:#25D366;color:white;}
 </style>
 
 <script>
@@ -100,12 +54,10 @@ const firebaseConfig = {
   appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-let allData = [];
+
+let allData=[];
 
 function today(){
   return new Date().toISOString().split("T")[0];
@@ -117,170 +69,109 @@ function checkPassword(){
     document.getElementById("panel").style.display="block";
     loadData();
   }else{
-    alert("密码错误");
+    alert("Wrong password");
   }
 }
 
-function openWhatsApp(id, phone){
-  if(!phone) return;
-
-  const now = new Date();
-
+function openWhatsApp(id,phone){
+  const now=new Date().toLocaleTimeString();
   db.collection("queues").doc(id).update({
-    lastContacted: firebase.firestore.Timestamp.fromDate(now)
+    lastContacted: now
   });
-
   window.open("https://wa.me/"+phone.replace("+",""),"_blank");
 }
 
 function updateStatus(id,status){
-  let updateData = { status:status };
-  if(status==="completed"||status==="cancelled"){
-    updateData.finishedAt = firebase.firestore.FieldValue.serverTimestamp();
-  }
-  db.collection("queues").doc(id).update(updateData);
-}
-
-function assignTable(id){
-  const tableNumber = prompt("请输入桌号:");
-  if(!tableNumber) return;
   db.collection("queues").doc(id).update({
-    status:"confirmed",
-    tableNumber:tableNumber
+    status:status,
+    completedAt: Date.now()
   });
 }
 
-function editPeople(id, currentAdults, currentBaby){
+function confirmWithTable(id){
+  const tables=[
 
-  const newAdults = prompt("修改成人数量 (>=1):", currentAdults);
-  if(newAdults === null) return;
+    "A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15","A16","A17","A18","A19","A20","A21","A22","A23",
 
-  const newBaby = prompt("修改宝宝椅数量 (>=0):", currentBaby);
-  if(newBaby === null) return;
+    "B1","B2","B3","B4","B5","B6","B7","B8",
 
-  // 验证
-  if(newAdults === "" || newBaby === ""){
-    alert("不能留空！");
-    return;
+    "VIP 1","VIP 2","VIP 3",
+
+    "C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14"
+  ];
+
+  let options=tables.map(t=>`<option value="${t}">${t}</option>`).join("");
+
+  const selectHTML=`
+    <select id="tableSelect" style="width:100%;padding:8px;font-size:16px;">
+      ${options}
+    </select>
+  `;
+
+  const div=document.createElement("div");
+  div.innerHTML=selectHTML;
+
+  if(confirm("按 OK 后选择桌号")){
+    setTimeout(()=>{
+      const table=prompt("请输入桌号 (如 A1, VIP 1):");
+      if(!table) return;
+      db.collection("queues").doc(id).update({
+        status:"confirmed",
+        tableNumber:table
+      });
+    },100);
   }
-
-  if(isNaN(newAdults) || isNaN(newBaby)){
-    alert("必须是数字！");
-    return;
-  }
-
-  if(parseInt(newAdults) < 1){
-    alert("成人数量不能小于1！");
-    return;
-  }
-
-  if(parseInt(newBaby) < 0){
-    alert("宝宝椅不能小于0！");
-    return;
-  }
-
-  db.collection("queues").doc(id).update({
-    adults: parseInt(newAdults),
-    babyChairs: parseInt(newBaby)
-  });
 }
 
-function formatTime(timestamp){
-  if(!timestamp) return "";
-  const date = timestamp.toDate();
-  return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+function updateAdults(id,current){
+  const newVal=prompt("修改人数:",current);
+  if(!newVal) return;
+  const num=parseInt(newVal);
+  if(isNaN(num)||num<1){
+    alert("人数必须为数字且 ≥1");
+    return;
+  }
+  db.collection("queues").doc(id).update({adults:num});
 }
 
-function exportTodayCSV(){
-  const todayDate = today();
-  let csv = "QueueNumber,Name,Phone,Adults,BabyChairs,TableNumber,Status,LastContacted\n";
-
-  allData.forEach(item=>{
-    const lastContact = item.lastContacted 
-      ? item.lastContacted.toDate().toLocaleTimeString()
-      : "";
-
-    csv += `"${item.queueNumber}","${item.name}","${item.phone}",${item.adults},${item.babyChairs},"${item.tableNumber||""}","${item.status}","${lastContact}"\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = window.URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "queue-" + todayDate + ".csv";
-  a.click();
-
-  window.URL.revokeObjectURL(url);
-}
-
-function renderList(list, container){
+function render(list,container,reverse=false){
   container.innerHTML="";
+  if(reverse) list=list.reverse();
+
   list.forEach(item=>{
     container.innerHTML+=`
     <div class="card">
-      <div class="queue-number">🆔 ${item.queueNumber}</div>
-      📅 ${item.date} | ⏰ ${item.time}<br>
-
-      <div class="customer-name">👤 ${item.name}</div>
+      <div><b>${item.queueNumber}</b></div>
+      👤 ${item.name}<br>
       📞 ${item.phone}<br>
+      👨 人数: ${item.adults}
+      <button onclick="updateAdults('${item.id}',${item.adults})">修改人数</button>
+      <br>
+      🏷 桌号:
+      <div class="big-table">${item.tableNumber||"-"}</div>
+      📌 状态: ${item.status}
+      ${item.lastContacted? `<br>📩 Last contacted: ${item.lastContacted}`:""}
+      <br><br>
 
-      👨 成人:${item.adults} 👶:${item.babyChairs}<br>
+      <button class="waBtn" onclick="openWhatsApp('${item.id}','${item.phone}')">WhatsApp</button>
 
-      <div class="table-number">🏷 桌号: ${item.tableNumber||"-"}</div>
+      ${item.status==="waiting"?
+        `<button class="confirmBtn" onclick="confirmWithTable('${item.id}')">
+          Confirm + Table
+        </button>`:""}
 
-      ${item.lastContacted ? 
-        `<div class="last-contacted">Last contacted: ${formatTime(item.lastContacted)}</div>` 
-        : ""}
+      ${item.status==="confirmed"?
+        `<button class="doneBtn" onclick="updateStatus('${item.id}','completed')">
+          Completed
+        </button>`:""}
 
-      📌 状态:${item.status}<br>
-
-      <button 
-        class="${item.lastContacted ? 'btn-whatsapp-clicked' : 'btn-whatsapp'}"
-        onclick="openWhatsApp('${item.id}','${item.phone}')">
-        WhatsApp
+      <button class="cancelBtn" onclick="updateStatus('${item.id}','cancelled')">
+        Cancel
       </button>
 
-      <button onclick="editPeople('${item.id}','${item.adults}','${item.babyChairs}')">
-        Edit 人数
-      </button>
-
-      ${item.status==="waiting" ?
-      `<button class="btn-confirm" onclick="assignTable('${item.id}')">Confirm + Table</button>`:""}
-
-      ${item.status==="confirmed" ?
-      `<button class="btn-complete" onclick="updateStatus('${item.id}','completed')">Completed</button>`:""}
-
-      <button class="btn-cancel" onclick="updateStatus('${item.id}','cancelled')">Cancel</button>
     </div>
     `;
   });
-}
-
-function applyFilter(){
-  const keyword=document.getElementById("search").value.toLowerCase();
-  let active=[], finished=[];
-
-  allData.forEach(data=>{
-    const match=
-      (data.name||"").toLowerCase().includes(keyword)||
-      (data.phone||"").includes(keyword)||
-      String(data.queueNumber||"").includes(keyword);
-
-    if(match){
-      if(data.status==="waiting"||data.status==="confirmed"){
-        active.push(data);
-      }else{
-        finished.push(data);
-      }
-    }
-  });
-
-  active.sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
-  finished.sort((a,b)=>(b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0));
-
-  renderList(active,document.getElementById("activeList"));
-  renderList(finished,document.getElementById("finishedList"));
 }
 
 function loadData(){
@@ -291,7 +182,15 @@ function loadData(){
     snapshot.forEach(doc=>{
       allData.push({...doc.data(),id:doc.id});
     });
-    applyFilter();
+
+    const active=allData.filter(d=>d.status==="waiting"||d.status==="confirmed")
+      .sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
+
+    const finished=allData.filter(d=>d.status==="completed"||d.status==="cancelled")
+      .sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+
+    render(active,document.getElementById("active"));
+    render(finished,document.getElementById("finished"));
   });
 }
 </script>
@@ -306,19 +205,13 @@ function loadData(){
 </div>
 
 <div id="panel" style="display:none;">
-  <h2>后台管理系统</h2>
-
-  <button class="btn-export" onclick="exportTodayCSV()">⬇ 导出今日排号</button>
-
-  <input type="text" id="search" placeholder="🔍 搜索名字 / 电话 / 排号" oninput="applyFilter()">
-
-  <div class="section-title">🟢 Waiting + Confirmed</div>
-  <div id="activeList"></div>
+  <h2>Waiting / Confirmed</h2>
+  <div id="active"></div>
 
   <hr>
 
-  <div class="section-title">🔴 Cancelled + Completed</div>
-  <div id="finishedList"></div>
+  <h2>Completed / Cancelled</h2>
+  <div id="finished"></div>
 </div>
 
 </body>
