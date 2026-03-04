@@ -60,7 +60,7 @@ button{
 }
 
 .queue-number{
-  font-size:36px;
+  font-size:38px;
   font-weight:bold;
   margin-top:10px;
 }
@@ -75,6 +75,7 @@ button{
   margin-top:20px;
   font-size:14px;
   color:#555;
+  line-height:1.6;
 }
 </style>
 
@@ -123,7 +124,7 @@ function submitForm(){
   const baby=document.getElementById("baby").value;
 
   if(!name||!phone||!adults){
-    alert("请填写完整资料 / Please complete all fields");
+    alert("请填写完整资料");
     return;
   }
 
@@ -150,7 +151,6 @@ function submitForm(){
 }
 
 function startRealtimeListener(){
-
   unsubscribe = db.collection("queues")
     .where("date","==",today())
     .onSnapshot(snapshot=>{
@@ -171,12 +171,11 @@ function startRealtimeListener(){
 }
 
 function showResult(queueNumber){
-
   document.getElementById("form").style.display="none";
 
   document.getElementById("result").innerHTML=`
     <div class="result">
-      <div>您的排号 / Your Queue Number</div>
+      <div>您的排号</div>
       <div class="queue-number">${queueNumber}</div>
 
       <div class="waiting-info" id="waitingCount">
@@ -184,9 +183,8 @@ function showResult(queueNumber){
       </div>
 
       <div class="notice">
-        ⚠ 前面的排号未必100%准确，我们有权做更改。<br>
-        Queue position may not be 100% accurate.  
-        Management reserves the right to adjust.
+        ⚠ 因为网络与技术可能延迟前面的排号未必100%准确，特别状况出现我们有权做更改。<br>
+        感谢您的支持与耐心的等待。
       </div>
     </div>
   `;
@@ -197,8 +195,7 @@ function updateWaitingCount(count){
   if(!el) return;
 
   el.innerHTML=`
-    您前面还有 ${count} 组顾客<br>
-    There are ${count} groups ahead of you
+    您前面还有 ${count} 组顾客
   `;
 }
 </script>
@@ -208,26 +205,31 @@ function updateWaitingCount(count){
 
 <div class="container">
 
-<h2>餐厅排号 / Queue Registration</h2>
+<h2>餐厅排号</h2>
 
 <div id="form">
 
-<input type="text" id="name" placeholder="姓名 Name">
-<input type="text" id="phone" placeholder="电话号码 Phone Number">
+<input type="text" id="name" placeholder="姓名">
+
+<input type="text" id="phone" placeholder="电话号码">
 
 <select id="adults">
-  <option value="">成人人数 Adults</option>
+  <option value="">成人人数</option>
   <option>1</option><option>2</option><option>3</option>
   <option>4</option><option>5</option><option>6</option>
   <option>7</option><option>8</option>
 </select>
 
 <select id="baby">
-  <option value="0">宝宝椅 Baby Chair (0)</option>
-  <option>1</option><option>2</option>
+  <option value="0">宝宝椅数量 (0)</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
 </select>
 
-<button onclick="submitForm()">提交 Submit</button>
+<button onclick="submitForm()">提交</button>
 
 </div>
 
