@@ -2,223 +2,232 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Queue</title>
+<title>Restaurant Queue</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <style>
+
 body{
-  font-family:Arial;
-  background:#f7f7f7;
-  margin:0;
-  padding:20px;
+font-family:Arial;
+background:#f5f5f5;
+display:flex;
+justify-content:center;
 }
 
 .container{
-  max-width:500px;
-  margin:auto;
-  background:white;
-  padding:25px;
-  border-radius:15px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+width:95%;
+max-width:420px;
+background:white;
+padding:30px;
+margin-top:40px;
+border-radius:12px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
 
 h2{
-  text-align:center;
+text-align:center;
+font-size:28px;
 }
 
-input,select{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  font-size:18px;
-}
-
-.phone-row{
-  display:flex;
-  gap:8px;
-}
-
-.phone-row select{
-  width:40%;
-}
-
-.phone-row input{
-  width:60%;
-}
-
-.example{
-  font-size:14px;
-  color:gray;
-  margin-top:4px;
+input,select,button{
+width:100%;
+padding:16px;
+margin-top:12px;
+font-size:18px;
+border-radius:8px;
+border:1px solid #ccc;
+box-sizing:border-box;
 }
 
 button{
-  width:100%;
-  padding:15px;
-  margin-top:20px;
-  border:none;
-  border-radius:10px;
-  font-size:20px;
-  background:black;
-  color:white;
+background:#27ae60;
+color:white;
+font-weight:bold;
+border:none;
 }
 
-.result{
-  margin-top:25px;
-  padding:20px;
-  background:#f2f2f2;
-  border-radius:12px;
-  text-align:center;
-}
-
-.queue-number{
-  font-size:36px;
-  font-weight:bold;
+button:hover{
+background:#219150;
 }
 
 .notice{
-  margin-top:20px;
-  font-size:14px;
-  color:#555;
-  line-height:1.6;
+margin-top:20px;
+font-size:14px;
+color:#777;
+text-align:center;
 }
+
+.queueInfo{
+margin-top:20px;
+font-size:18px;
+text-align:center;
+color:#e67e22;
+}
+
+.phoneRow{
+display:flex;
+gap:6px;
+}
+
+.phoneRow select{
+width:35%;
+}
+
+.phoneRow input{
+width:65%;
+}
+
+.example{
+font-size:13px;
+color:#999;
+margin-top:5px;
+}
+
 </style>
-
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
-  authDomain: "yunnans-1u.firebaseapp.com",
-  projectId: "yunnans-1u"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-
-function today(){
-  return new Date().toISOString().split("T")[0];
-}
-
-function todayLetter(){
-  const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const day=new Date().getDate();
-  return letters[day % 26];
-}
-
-function randomNumber(){
-  return Math.floor(100 + Math.random() * 900);
-}
-
-function generateQueue(){
-  return todayLetter()+randomNumber();
-}
-
-function submitForm(){
-
-  const name=document.getElementById("name").value.trim();
-  const country=document.getElementById("country").value;
-  const phone=document.getElementById("phone").value.trim();
-  const adults=document.getElementById("adults").value;
-  const baby=document.getElementById("baby").value;
-
-  if(!name || !phone || !adults){
-    alert("请填写完整资料");
-    return;
-  }
-
-  // 只允许数字
-  if(isNaN(phone)){
-    alert("电话号码必须是数字");
-    return;
-  }
-
-  const fullPhone = country + phone;
-
-  const queueNumber=generateQueue();
-  const now=new Date();
-
-  db.collection("queues").add({
-    name:name,
-    phone:fullPhone,
-    adults:parseInt(adults),
-    babyChairs:parseInt(baby)||0,
-    queueNumber:queueNumber,
-    status:"waiting",
-    date:today(),
-    time:now.toLocaleTimeString(),
-    timestamp:firebase.firestore.Timestamp.fromDate(now)
-  }).then(()=>{
-    showResult(queueNumber);
-  });
-}
-
-function showResult(queue){
-  document.getElementById("form").style.display="none";
-
-  document.getElementById("result").innerHTML=`
-    <div class="result">
-      <div>您的排号</div>
-      <div class="queue-number">${queue}</div>
-
-      <div class="notice">
-        ⚠ 因为网络与技术可能延迟前面的排号未必100%准确，特别状况出现我们有权做更改。<br>
-        感谢您的支持与耐心的等待。
-      </div>
-    </div>
-  `;
-}
-</script>
 </head>
 
 <body>
 
 <div class="container">
 
-<h2>餐厅排号</h2>
+<h2>扫码排号</h2>
 
-<div id="form">
+<input id="name" placeholder="姓名">
 
-<input type="text" id="name" placeholder="姓名 Name">
+<div class="phoneRow">
 
-<div class="phone-row">
-  <select id="country">
-    <option value="+60">+60 Malaysia</option>
-    <option value="+65">+65 Singapore</option>
-    <option value="+86">+86 China</option>
-    <option value="+852">+852 Hong Kong</option>
-  </select>
+<select id="country">
+<option value="+60">🇲🇾 +60</option>
+<option value="+65">🇸🇬 +65</option>
+<option value="+86">🇨🇳 +86</option>
+<option value="+852">🇭🇰 +852</option>
+<option value="+886">🇹🇼 +886</option>
+<option value="+1">🇺🇸 +1</option>
+<option value="+44">🇬🇧 +44</option>
+<option value="+61">🇦🇺 +61</option>
+</select>
 
-  <input type="text" id="phone" placeholder="电话号码 (不用输入0)">
+<input 
+id="phone" 
+type="tel"
+placeholder="电话号码"
+inputmode="numeric"
+>
+
 </div>
 
 <div class="example">
-Example: 如果号码是 0123456789<br>
-请输入: 123456789
+Example：如果号码是 0123456789<br>
+请输入：123456789
 </div>
 
-<select id="adults">
-  <option value="">成人人数</option>
-  <option>1</option><option>2</option><option>3</option>
-  <option>4</option><option>5</option><option>6</option>
-</select>
+<input
+type="number"
+id="adults"
+placeholder="成人人数 (1-22)"
+min="1"
+max="22"
+step="1"
+>
 
 <select id="baby">
-  <option value="0">宝宝椅 (0)</option>
-  <option>1</option><option>2</option>
-  <option>3</option><option>4</option><option>5</option>
+<option value="0">宝宝椅 0</option>
+<option value="1">宝宝椅 1</option>
+<option value="2">宝宝椅 2</option>
+<option value="3">宝宝椅 3</option>
+<option value="4">宝宝椅 4</option>
+<option value="5">宝宝椅 5</option>
 </select>
 
-<button onclick="submitForm()">提交</button>
+<button onclick="submitForm()">领取排号</button>
+
+<div class="queueInfo" id="queueInfo"></div>
+
+<div class="notice">
+因为网络与技术可能延迟前面的排号未必100%准确，特别状况出现我们有权做更改。感谢您的支持与耐心的等待。
+</div>
 
 </div>
 
-<div id="result"></div>
+<script>
 
-</div>
+const firebaseConfig={
+apiKey:"YOUR_API_KEY",
+authDomain:"YOUR_PROJECT.firebaseapp.com",
+databaseURL:"YOUR_DATABASE_URL",
+projectId:"YOUR_PROJECT_ID",
+storageBucket:"YOUR_PROJECT.appspot.com",
+messagingSenderId:"XXXX",
+appId:"XXXX"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+function submitForm(){
+
+const name=document.getElementById("name").value.trim();
+const phone=document.getElementById("phone").value.trim();
+const country=document.getElementById("country").value;
+const adults=parseInt(document.getElementById("adults").value);
+const baby=document.getElementById("baby").value;
+
+if(!name || !phone || !adults){
+alert("请填写完整资料");
+return;
+}
+
+if(adults<1){
+alert("人数最少1位");
+return;
+}
+
+if(adults>22){
+alert("最多22位");
+return;
+}
+
+const fullPhone=country+phone;
+
+const letter=String.fromCharCode(65+Math.floor(Math.random()*26));
+const number=Math.floor(Math.random()*999).toString().padStart(3,"0");
+
+const queueNumber=letter+number;
+
+const timestamp=Date.now();
+
+db.ref("queues/"+queueNumber).set({
+name:name,
+phone:fullPhone,
+adults:adults,
+baby:baby,
+timestamp:timestamp,
+status:"waiting"
+});
+
+alert("你的排号是 "+queueNumber);
+
+}
+
+db.ref("queues").on("value",snap=>{
+
+let data=snap.val();
+
+if(!data){
+document.getElementById("queueInfo").innerText="";
+return;
+}
+
+let waiting=Object.values(data).filter(q=>q.status=="waiting");
+
+document.getElementById("queueInfo").innerText=
+"当前前面大约还有 "+waiting.length+" 组等待";
+
+});
+
+</script>
 
 </body>
 </html>
