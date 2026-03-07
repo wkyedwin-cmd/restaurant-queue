@@ -3,265 +3,183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurant Queue</title>
 
-<title>Yunnans Queue</title>
-
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+<!-- intl tel input -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css"/>
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
+
 <style>
-
-body{
-font-family:Arial;
-background:#f5f5f5;
-margin:0;
-padding:20px;
-display:flex;
-justify-content:center;
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
 }
 
-.container{
-background:white;
-padding:25px;
-border-radius:12px;
-width:100%;
-max-width:420px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
+.container {
+  background: white;
+  width: 100%;
+  max-width: 420px;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.logo{
-font-size:26px;
-font-weight:bold;
-text-align:center;
-margin-bottom:20px;
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-label{
-font-weight:bold;
-margin-top:10px;
-display:block;
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 12px;
 }
 
-input,select{
-width:100%;
-padding:12px;
-margin-top:6px;
-margin-bottom:10px;
-border-radius:8px;
-border:1px solid #ccc;
-font-size:16px;
+input, select {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
 
-button{
-width:100%;
-padding:14px;
-font-size:18px;
-background:#007bff;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 18px;
+  margin-top: 20px;
+  border-radius: 10px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
 }
 
-.notice{
-font-size:13px;
-color:#555;
-margin-top:15px;
+button:hover {
+  background-color: #0056b3;
 }
-
-.result{
-text-align:center;
-font-size:22px;
-margin-top:20px;
-}
-
-.waiting{
-font-size:18px;
-margin-top:10px;
-}
-
 </style>
 
 <script>
-
 const firebaseConfig = {
-apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
-authDomain: "yunnans-1u.firebaseapp.com",
-projectId: "yunnans-1u",
-storageBucket: "yunnans-1u.firebasestorage.app",
-messagingSenderId: "490439485047",
-appId: "1:490439485047:web:42d5ca722ade09c6b88872"
+  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
+  authDomain: "yunnans-1u.firebaseapp.com",
+  projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 const db = firebase.firestore();
+let phoneInput;
 
-let myTimestamp=null;
+window.onload = function(){
+  phoneInput = window.intlTelInput(document.querySelector("#phone"), {
+    initialCountry: "my",
+    preferredCountries: ["my","sg","cn"],
+    separateDialCode: false,
+    utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
+  });
+};
 
-function today(){
-return new Date().toISOString().split("T")[0];
+function getDailyLetter() {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), 0, 0);
+  const diff = today - start;
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  return letters[dayOfYear % 26];
 }
 
-function randomQueue(){
+async function generateDailyQueueNumber() {
+  const today = new Date().toISOString().split("T")[0];
+  const dailyLetter = getDailyLetter();
 
-const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const letter=letters[Math.floor(Math.random()*letters.length)];
+  while (true) {
+    const randomNumber = Math.floor(Math.random() * 999) + 1;
+    const formattedNumber = String(randomNumber).padStart(3, "0");
+    const fullQueueNumber = dailyLetter + formattedNumber;
 
-const num=Math.floor(Math.random()*999)+1;
+    const snapshot = await db.collection("queues")
+      .where("date","==",today)
+      .where("queueNumber","==",fullQueueNumber)
+      .get();
 
-return letter+num.toString().padStart(3,"0");
-
+    if (snapshot.empty) return fullQueueNumber;
+  }
 }
 
-function submitQueue(){
+async function submitForm(e){
+  e.preventDefault();
 
-const name=document.getElementById("name").value.trim();
+  if(!phoneInput.isValidNumber()){
+    alert("请输入正确的电话号码 / Please enter valid phone number");
+    return;
+  }
 
-const phone =
-document.getElementById("countryCode").value +
-document.getElementById("phone").value.trim();
+  const queueNumber = await generateDailyQueueNumber();
 
-const adults=parseInt(document.getElementById("adults").value);
+  await db.collection("queues").add({
+    queueNumber: queueNumber,
+    name: document.getElementById("name").value,
+    phone: phoneInput.getNumber(),
+    adults: parseInt(document.getElementById("adults").value),
+    babyChairs: parseInt(document.getElementById("babyChairs").value),
+    seating: document.getElementById("seating").value,
+    status: "waiting",
+    date: new Date().toISOString().split("T")[0],
+    time: new Date().toLocaleTimeString(),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
 
-const babyChair=parseInt(document.getElementById("babyChair").value);
-
-if(!name){
-alert("请输入名字 / Please enter name");
-return;
+  alert("您的排号是: " + queueNumber);
+  document.getElementById("queueForm").reset();
+  phoneInput.setCountry("my");
 }
-
-if(!phone){
-alert("请输入电话 / Please enter phone");
-return;
-}
-
-if(isNaN(adults) || adults<1 || adults>22){
-alert("人数必须 1-22 人");
-return;
-}
-
-const queueNumber=randomQueue();
-
-db.collection("queues").add({
-
-name:name,
-phone:phone,
-adults:adults,
-babyChair:babyChair,
-queueNumber:queueNumber,
-status:"waiting",
-date:today(),
-timestamp:firebase.firestore.FieldValue.serverTimestamp()
-
-}).then((doc)=>{
-
-document.getElementById("form").style.display="none";
-
-document.getElementById("result").innerHTML=
-"你的排号 / Your Queue Number<br><b>"+queueNumber+"</b>";
-
-myTimestamp=new Date();
-
-listenWaiting();
-
-});
-
-}
-
-function listenWaiting(){
-
-db.collection("queues")
-.where("date","==",today())
-.onSnapshot(snapshot=>{
-
-let count=0;
-
-snapshot.forEach(doc=>{
-
-const d=doc.data();
-
-if(d.status==="waiting" && d.timestamp && myTimestamp){
-
-const t=d.timestamp.toDate();
-
-if(t < myTimestamp) count++;
-
-}
-
-});
-
-document.getElementById("waiting").innerHTML=
-"前面还有 "+count+" 组 / "+count+" groups ahead";
-
-});
-
-}
-
 </script>
-
 </head>
 
 <body>
 
 <div class="container">
+<h2>餐厅排号系统</h2>
 
-<div class="logo">Yunnans@1Utama</div>
+<form id="queueForm" onsubmit="submitForm(event)">
 
-<div id="form">
-
-<label>名字 Name</label>
-<input id="name" placeholder="Example: Jason">
+<label>姓名 Name</label>
+<input type="text" id="name" required>
 
 <label>电话 Phone</label>
+<input type="tel" id="phone" required>
 
-<div style="display:flex;gap:6px">
+<label>成人 Adults</label>
+<input type="number" id="adults" min="1" required>
 
-<select id="countryCode" style="width:40%">
+<label>宝宝椅 Baby Chairs</label>
+<input type="number" id="babyChairs" min="0" value="0">
 
-<option value="+60">🇲🇾 +60</option>
-<option value="+65">🇸🇬 +65</option>
-<option value="+86">🇨🇳 +86</option>
-<option value="+852">🇭🇰 +852</option>
-<option value="+886">🇹🇼 +886</option>
-<option value="+1">🇺🇸 +1</option>
-<option value="+44">🇬🇧 +44</option>
-<option value="+61">🇦🇺 +61</option>
-
+<label>座位选择 Seating</label>
+<select id="seating">
+  <option value="indoor">室内 Indoor</option>
+  <option value="outdoor">室外 Outdoor</option>
+  <option value="any">随意 Fastest Available</option>
 </select>
 
-<input id="phone" placeholder="Example: 123456789" style="width:60%">
+<button type="submit">提交 Submit</button>
 
-</div>
-
-<label>人数 Number of People</label>
-<input id="adults" type="number" min="1" max="22" placeholder="1 - 22">
-
-<label>宝宝椅 Baby Chair</label>
-
-<select id="babyChair">
-
-<option value="0">0</option>
-<option value="1">1</option>
-<option value="2">2</option>
-<option value="3">3</option>
-<option value="4">4</option>
-<option value="5">5</option>
-
-</select>
-
-<button onclick="submitQueue()">排号 Queue</button>
-
-<div class="notice">
-因为网络与技术可能延迟前面的排号未必100%准确，特别状况出现我们有权做更改。感谢您的支持与耐心的等待。<br><br>
-Due to network delay the queue may not be 100% accurate. Management reserves the right to adjust the queue.
-</div>
-
-</div>
-
-<div class="result" id="result"></div>
-
-<div class="waiting" id="waiting"></div>
-
+</form>
 </div>
 
 </body>
