@@ -15,7 +15,7 @@ body{
 font-family:Arial;
 background:#f5f5f5;
 margin:0;
-padding:20px;
+padding:15px;
 }
 
 h2{
@@ -23,67 +23,73 @@ text-align:center;
 }
 
 .searchBox{
-margin-bottom:15px;
 text-align:center;
+margin-bottom:15px;
 }
 
 .searchBox input{
-width:320px;
-max-width:95%;
-padding:10px;
+width:95%;
+padding:12px;
 font-size:16px;
-border-radius:6px;
+border-radius:8px;
 border:1px solid #ccc;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
+.queueCard{
+
 background:white;
-}
+padding:12px;
+margin-bottom:10px;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 
-th,td{
-padding:10px;
-border-bottom:1px solid #ddd;
-text-align:center;
-}
-
-th{
-background:#333;
-color:white;
 }
 
 .oldQueue{
 background:#ffd6d6;
 }
 
+.topRow{
+display:flex;
+justify-content:space-between;
+font-size:18px;
+font-weight:bold;
+}
+
+.nameRow{
+margin-top:5px;
+font-size:16px;
+}
+
+.phoneRow{
+font-size:14px;
+color:#666;
+}
+
+.buttonRow{
+
+margin-top:8px;
+display:flex;
+gap:6px;
+flex-wrap:wrap;
+
+}
+
 button{
-padding:6px 10px;
+
+flex:1;
+padding:10px;
 border:none;
-border-radius:5px;
+border-radius:8px;
+font-size:14px;
 cursor:pointer;
-margin:2px;
+
 }
 
-.confirm{
-background:#28a745;
-color:white;
-}
-
-.complete{
-background:#007bff;
-color:white;
-}
-
-.delete{
-background:#dc3545;
-color:white;
-}
-
-.call{
-background:#ff9800;
-color:white;
-}
+.call{background:#ff9800;color:white;}
+.confirm{background:#28a745;color:white;}
+.complete{background:#007bff;color:white;}
+.delete{background:#dc3545;color:white;}
 
 </style>
 
@@ -107,20 +113,16 @@ function today(){
 return new Date().toISOString().split("T")[0];
 }
 
-function formatDateTime(timestamp){
+function formatTime(timestamp){
 
 if(!timestamp) return "-";
 
 const d = timestamp.toDate();
 
-const year = d.getFullYear();
-const month = (d.getMonth()+1).toString().padStart(2,"0");
-const day = d.getDate().toString().padStart(2,"0");
+const h = d.getHours().toString().padStart(2,"0");
+const m = d.getMinutes().toString().padStart(2,"0");
 
-const hour = d.getHours().toString().padStart(2,"0");
-const minute = d.getMinutes().toString().padStart(2,"0");
-
-return `${year}-${month}-${day} ${hour}:${minute}`;
+return h+":"+m;
 
 }
 
@@ -128,12 +130,12 @@ function isOver40Minutes(timestamp){
 
 if(!timestamp) return false;
 
-const now = new Date();
-const queueTime = timestamp.toDate();
+const now=new Date();
+const queueTime=timestamp.toDate();
 
-const diff = (now - queueTime) / 60000;
+const diff=(now-queueTime)/60000;
 
-return diff >= 40;
+return diff>=40;
 
 }
 
@@ -155,57 +157,50 @@ allQueues.push(d);
 
 });
 
-renderTable(allQueues);
+renderQueues(allQueues);
 
 });
 
 }
 
-function callCustomer(id, phone){
+function renderQueues(data){
 
-const ref = db.collection("queues").doc(id);
+const container=document.getElementById("list");
 
-ref.get().then(doc=>{
-
-let data = doc.data();
-let count = data.callCount || 0;
-
-ref.update({
-callCount: count + 1
-});
-
-window.location.href = "tel:" + phone;
-
-});
-
-}
-
-function renderTable(data){
-
-const table=document.getElementById("tbody");
-
-table.innerHTML="";
+container.innerHTML="";
 
 data.forEach(d=>{
 
-let row=document.createElement("tr");
+let card=document.createElement("div");
+
+card.className="queueCard";
 
 if(isOver40Minutes(d.timestamp) && d.status=="waiting"){
-row.classList.add("oldQueue");
+card.classList.add("oldQueue");
 }
 
-row.innerHTML=`
+card.innerHTML=`
 
-<td>${d.queueNumber}</td>
-<td>${formatDateTime(d.timestamp)}</td>
-<td>${d.name}</td>
-<td>${d.phone}</td>
-<td>${d.adults}</td>
-<td>${d.babyChair ?? 0}</td>
-<td>${d.callCount ?? 0}</td>
-<td>${d.status}</td>
+<div class="topRow">
 
-<td>
+<div>${d.queueNumber}</div>
+<div>${formatTime(d.timestamp)}</div>
+
+</div>
+
+<div class="nameRow">
+
+${d.name} (${d.adults}人 / Baby ${d.babyChair ?? 0})
+
+</div>
+
+<div class="phoneRow">
+
+${d.phone} | Call ${d.callCount ?? 0}
+
+</div>
+
+<div class="buttonRow">
 
 <button class="call"
 onclick="callCustomer('${d.id}','${d.phone}')">
@@ -214,24 +209,43 @@ onclick="callCustomer('${d.id}','${d.phone}')">
 
 <button class="confirm"
 onclick="confirmQueue('${d.id}')">
-Confirm
+✓ Confirm
 </button>
 
 <button class="complete"
 onclick="completeQueue('${d.id}')">
-Complete
+✔ Done
 </button>
 
 <button class="delete"
 onclick="deleteQueue('${d.id}')">
-Delete
+✕
 </button>
 
-</td>
+</div>
 
 `;
 
-table.appendChild(row);
+container.appendChild(card);
+
+});
+
+}
+
+function callCustomer(id,phone){
+
+const ref=db.collection("queues").doc(id);
+
+ref.get().then(doc=>{
+
+let data=doc.data();
+let count=data.callCount || 0;
+
+ref.update({
+callCount:count+1
+});
+
+window.location.href="tel:"+phone;
 
 });
 
@@ -248,13 +262,13 @@ const filtered=allQueues.filter(d=>{
 
 return(
 (d.name && d.name.toLowerCase().includes(keyword)) ||
-(d.phone && d.phone.toLowerCase().includes(keyword)) ||
+(d.phone && d.phone.includes(keyword)) ||
 (d.queueNumber && d.queueNumber.toLowerCase().includes(keyword))
 );
 
 });
 
-renderTable(filtered);
+renderQueues(filtered);
 
 }
 
@@ -268,7 +282,7 @@ db.collection("queues").doc(id).update({status:"completed"});
 
 function deleteQueue(id){
 
-if(confirm("Delete this queue?")){
+if(confirm("Delete queue?")){
 db.collection("queues").doc(id).delete();
 }
 
@@ -293,27 +307,7 @@ onkeyup="searchCustomer()">
 
 </div>
 
-<table>
-
-<thead>
-
-<tr>
-<th>Queue</th>
-<th>Date & Time</th>
-<th>Name</th>
-<th>Phone</th>
-<th>People</th>
-<th>Baby Chair</th>
-<th>Call</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-
-</thead>
-
-<tbody id="tbody"></tbody>
-
-</table>
+<div id="list"></div>
 
 </body>
 </html>
