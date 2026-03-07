@@ -161,6 +161,25 @@ renderTable(allQueues);
 
 }
 
+function callCustomer(id, phone){
+
+const ref = db.collection("queues").doc(id);
+
+ref.get().then(doc=>{
+
+let data = doc.data();
+let count = data.callCount || 0;
+
+ref.update({
+callCount: count + 1
+});
+
+window.location.href = "tel:" + phone;
+
+});
+
+}
+
 function renderTable(data){
 
 const table=document.getElementById("tbody");
@@ -183,13 +202,15 @@ row.innerHTML=`
 <td>${d.phone}</td>
 <td>${d.adults}</td>
 <td>${d.babyChair ?? 0}</td>
+<td>${d.callCount ?? 0}</td>
 <td>${d.status}</td>
 
 <td>
 
-<a href="tel:${d.phone}">
-<button class="call">📞 Call</button>
-</a>
+<button class="call"
+onclick="callCustomer('${d.id}','${d.phone}')">
+📞 Call
+</button>
 
 <button class="confirm"
 onclick="confirmQueue('${d.id}')">
@@ -238,29 +259,17 @@ renderTable(filtered);
 }
 
 function confirmQueue(id){
-
-db.collection("queues")
-.doc(id)
-.update({status:"confirmed"});
-
+db.collection("queues").doc(id).update({status:"confirmed"});
 }
 
 function completeQueue(id){
-
-db.collection("queues")
-.doc(id)
-.update({status:"completed"});
-
+db.collection("queues").doc(id).update({status:"completed"});
 }
 
 function deleteQueue(id){
 
 if(confirm("Delete this queue?")){
-
-db.collection("queues")
-.doc(id)
-.delete();
-
+db.collection("queues").doc(id).delete();
 }
 
 }
@@ -295,6 +304,7 @@ onkeyup="searchCustomer()">
 <th>Phone</th>
 <th>People</th>
 <th>Baby Chair</th>
+<th>Call</th>
 <th>Status</th>
 <th>Action</th>
 </tr>
