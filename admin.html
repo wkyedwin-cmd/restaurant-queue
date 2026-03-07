@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Queue Admin</title>
+<title>Yunnans Queue Admin</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -28,8 +28,8 @@ text-align:center;
 }
 
 .searchBox input{
-width:300px;
-max-width:90%;
+width:320px;
+max-width:95%;
 padding:10px;
 font-size:16px;
 border-radius:6px;
@@ -54,7 +54,7 @@ color:white;
 }
 
 .oldQueue{
-background:#ffdddd;
+background:#ffd6d6;
 }
 
 button{
@@ -62,6 +62,7 @@ padding:6px 10px;
 border:none;
 border-radius:5px;
 cursor:pointer;
+margin:2px;
 }
 
 .confirm{
@@ -76,6 +77,11 @@ color:white;
 
 .delete{
 background:#dc3545;
+color:white;
+}
+
+.call{
+background:#ff9800;
 color:white;
 }
 
@@ -101,16 +107,20 @@ function today(){
 return new Date().toISOString().split("T")[0];
 }
 
-function formatTime(timestamp){
+function formatDateTime(timestamp){
 
 if(!timestamp) return "-";
 
 const d = timestamp.toDate();
 
-const h = d.getHours().toString().padStart(2,"0");
-const m = d.getMinutes().toString().padStart(2,"0");
+const year = d.getFullYear();
+const month = (d.getMonth()+1).toString().padStart(2,"0");
+const day = d.getDate().toString().padStart(2,"0");
 
-return h + ":" + m;
+const hour = d.getHours().toString().padStart(2,"0");
+const minute = d.getMinutes().toString().padStart(2,"0");
+
+return `${year}-${month}-${day} ${hour}:${minute}`;
 
 }
 
@@ -168,7 +178,7 @@ row.classList.add("oldQueue");
 row.innerHTML=`
 
 <td>${d.queueNumber}</td>
-<td>${formatTime(d.timestamp)}</td>
+<td>${formatDateTime(d.timestamp)}</td>
 <td>${d.name}</td>
 <td>${d.phone}</td>
 <td>${d.adults}</td>
@@ -176,6 +186,10 @@ row.innerHTML=`
 <td>${d.status}</td>
 
 <td>
+
+<a href="tel:${d.phone}">
+<button class="call">📞 Call</button>
+</a>
 
 <button class="confirm"
 onclick="confirmQueue('${d.id}')">
@@ -276,7 +290,7 @@ onkeyup="searchCustomer()">
 
 <tr>
 <th>Queue</th>
-<th>Time</th>
+<th>Date & Time</th>
 <th>Name</th>
 <th>Phone</th>
 <th>People</th>
