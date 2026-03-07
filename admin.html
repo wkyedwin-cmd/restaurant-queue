@@ -3,60 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<title>管理后台 · 醒目版</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-body{
-  font-family:Arial;
-  margin:0;
-  padding:15px;
-  background:#f4f4f4;
+/* 整体放大基础字体，确保可读性 */
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  margin: 0;
+  padding: 20px;
+  font-size: 18px;  /* 基础字体从16->18 */
 }
 
-.card{
-  background:white;
-  padding:15px;
-  margin-bottom:15px;
-  border-radius:10px;
-  box-shadow:0 3px 8px rgba(0,0,0,0.1);
+h2 {
+  text-align: center;
+  font-size: 32px;   /* 更大标题 */
+  margin: 10px 0 20px;
 }
 
-.big-table{
-  font-size:26px;
-  font-weight:bold;
-  color:#007bff;
+.section-title {
+  margin-top: 45px;
+  font-size: 28px;    /* 区域标题放大 */
+  font-weight: bold;
+  border-left: 8px solid #2c3e50;
+  padding-left: 15px;
 }
 
-button{
-  padding:8px 12px;
-  margin:4px 4px 0 0;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+.card {
+  background: white;
+  padding: 25px;       /* 内边距增加 */
+  margin-top: 20px;
+  border-radius: 16px;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+  font-size: 20px;     /* 卡片内基本字体放大 */
+  line-height: 1.7;
 }
 
-.confirmBtn{background:#28a745;color:white;}
-.doneBtn{background:#333;color:white;}
-.cancelBtn{background:#dc3545;color:white;}
-.callBtn{background:#007bff;color:white;}
+/* 重点信息：加大加粗 + 背景浅色块 */
+.queue-number {
+  font-size: 38px;     /* 排号巨大 */
+  font-weight: 800;
+  background: #e1f0fa;
+  display: inline-block;
+  padding: 5px 20px;
+  border-radius: 60px;
+  margin-bottom: 12px;
+}
 
+.customer-name {
+  font-size: 32px;      /* 名字非常大 */
+  font-weight: 900;
+  margin: 10px 0 5px;
+  color: #1e3c5c;
+  border-bottom: 3px solid #ccc;
+  padding-bottom: 6px;
+}
+
+/* 成人/宝宝椅单独强调 */
+.pax-info {
+  font-size: 26px;      /* 人数区域放大 */
+  font-weight: 600;
+  background: #f9f2e0;
+  padding: 8px 18px;
+  border-radius: 50px;
+  display: inline-block;
+  margin: 12px 0;
+}
+
+.pax-info span {
+  font-weight: 900;
+  color: #b34b00;
+  margin: 0 8px;
+}
+
+.table-number {
+  font-size: 34px;      /* 桌号醒目 */
+  font-weight: bold;
+  color: #c9302c;
+  background: #ffeeee;
+  padding: 5px 20px;
+  border-radius: 40px;
+  display: inline-block;
+}
+
+.last-contacted {
+  font-size: 20px;      /* 联系时间稍大 */
+  color: #555;
+  background: #efefef;
+  padding: 6px 12px;
+  border-radius: 30px;
+  margin: 12px 0;
+}
+
+/* 状态标签放大 */
+.status-badge {
+  font-size: 22px;
+  font-weight: bold;
+  display: inline-block;
+  padding: 8px 25px;
+  border-radius: 40px;
+  background: #d4edda;
+  color: #155724;
+  margin: 10px 0;
+}
+
+button {
+  padding: 14px 22px;    /* 按钮更大 */
+  margin: 12px 12px 0 0;
+  border: none;
+  border-radius: 50px;
+  font-size: 20px;       /* 按钮字体加大 */
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+.btn-confirm { background: #28a745; color: white; }
+.btn-complete { background: #007bff; color: white; }
+.btn-cancel { background: #dc3545; color: white; }
+.btn-whatsapp { background: #25D366; color: white; }
+.btn-whatsapp-clicked { background: #a1a1a1; color: white; }
+
+input, select {
+  width: 100%;
+  padding: 18px;        /* 输入框更大 */
+  margin-top: 20px;
+  border-radius: 12px;
+  border: 1px solid #bbb;
+  font-size: 20px;
+}
+
+hr {
+  margin: 60px 0;
+  border: 3px solid #444;
+  border-radius: 6px;
+}
+
+/* 登录界面同样放大 */
+#login input {
+  width: 70%;
+  margin-right: 10px;
+}
+#login button {
+  width: auto;
+  padding: 14px 32px;
+}
 </style>
 
 <script>
-
 const firebaseConfig = {
   apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
   authDomain: "yunnans-1u.firebaseapp.com",
   projectId: "yunnans-1u",
+  storageBucket: "yunnans-1u.firebasestorage.app",
+  messagingSenderId: "490439485047",
+  appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-let allData=[];
+const db = firebase.firestore();
+let allData = [];
 
 function today(){
   return new Date().toISOString().split("T")[0];
@@ -68,192 +181,147 @@ function checkPassword(){
     document.getElementById("panel").style.display="block";
     loadData();
   }else{
-    alert("Wrong password");
+    alert("密码错误");
   }
 }
 
-function callPhone(id,phone){
+function openWhatsApp(id, phone){
+  if(!phone) return;
 
-  if(!phone){
-    alert("没有电话号码");
-    return;
-  }
-
-  let clean = phone.replace(/[^0-9]/g, "");
-
-  if(clean.length < 8){
-    alert("电话号码格式错误");
-    return;
-  }
-
-  const now=new Date().toLocaleTimeString();
+  const now = new Date();
 
   db.collection("queues").doc(id).update({
-    lastContacted: now
+    lastContacted: firebase.firestore.Timestamp.fromDate(now)
   });
 
-  const url="tel:"+clean;
-
-  window.location.href=url;
+  window.open("https://wa.me/"+phone.replace("+",""),"_blank");
 }
 
 function updateStatus(id,status){
-  db.collection("queues").doc(id).update({
-    status:status,
-    completedAt: Date.now()
-  });
+  let updateData = { status:status };
+  if(status==="completed"||status==="cancelled"){
+    updateData.finishedAt = firebase.firestore.FieldValue.serverTimestamp();
+  }
+  db.collection("queues").doc(id).update(updateData);
 }
 
-function confirmWithTable(id){
-
-  const tables=[
-"A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15","A16","A17","A18","A19","A20","A21","A22","A23",
-"B1","B2","B3","B4","B5","B6","B7","B8",
-"VIP 1","VIP 2","VIP 3",
-"C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14"
-  ];
-
-  const available = tables.join(", ");
-
-  const table = prompt("请选择桌号:\n\n"+available);
-
-  if(!table) return;
-
-  if(!tables.includes(table)){
-    alert("无效桌号");
-    return;
-  }
-
+function assignTable(id){
+  const tableNumber = prompt("请输入桌号:");
+  if(!tableNumber) return;
   db.collection("queues").doc(id).update({
     status:"confirmed",
-    tableNumber:table
+    tableNumber:tableNumber
   });
 }
 
-function updateAdults(id,current){
-
-  const newVal=prompt("修改人数 (必须 ≥1):",current);
-  if(!newVal) return;
-
-  const num=parseInt(newVal);
-
-  if(isNaN(num) || num<1){
-    alert("人数必须为数字且 ≥1");
-    return;
-  }
-
-  db.collection("queues").doc(id).update({
-    adults:num
-  });
+function formatTime(timestamp){
+  if(!timestamp) return "";
+  const date = timestamp.toDate();
+  return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }
 
-function render(list,container,reverse=false){
+// 修改后的渲染：突出显示名字，人数，宝宝椅，排号
+function renderList(list, container){
   container.innerHTML="";
-  if(reverse) list=list.reverse();
-
   list.forEach(item=>{
+    // 构建显示内容，把姓名、成人/宝宝椅用超大号展示
     container.innerHTML+=`
     <div class="card">
+      <div class="queue-number">🆔 ${item.queueNumber}</div>
+      <div style="font-size:22px; color:#2c3e50;">📅 ${item.date} | ⏰ ${item.time}</div>
 
-      <b>${item.queueNumber}</b><br>
-      👤 ${item.name}<br>
-      📞 ${item.phone}<br>
+      <div class="customer-name">👤 ${item.name}</div>
 
-      👨 人数: ${item.adults}
-      <button onclick="updateAdults('${item.id}',${item.adults})">
-      修改人数
-      </button>
-      <br>
+      <div class="pax-info">
+        👨 成人 <span>${item.adults}</span>  &nbsp;&nbsp; 👶 宝宝椅 <span>${item.babyChairs}</span>
+      </div>
 
-      🏷 桌号:
-      <div class="big-table">${item.tableNumber||"-"}</div>
-
-      📌 状态: ${item.status}
+      <div class="table-number">🏷 桌号: ${item.tableNumber||"-"}</div>
 
       ${item.lastContacted ? 
-      `<br>📞 Last called: ${item.lastContacted}`:""}
+        `<div class="last-contacted">📞 最后联系: ${formatTime(item.lastContacted)}</div>` 
+        : ""}
 
-      <br><br>
+      <div class="status-badge">📌 ${item.status}</div><br>
 
-      <button class="callBtn"
-      onclick="callPhone('${item.id}','${item.phone}')">
-      Call
+      <button 
+        class="${item.lastContacted ? 'btn-whatsapp-clicked' : 'btn-whatsapp'}"
+        onclick="openWhatsApp('${item.id}','${item.phone}')">
+        WhatsApp
       </button>
 
-      ${item.status==="waiting"?
-      `<button class="confirmBtn"
-      onclick="confirmWithTable('${item.id}')">
-      Confirm + Table
-      </button>`:""}
+      ${item.status==="waiting" ?
+      `<button class="btn-confirm" onclick="assignTable('${item.id}')">✅ Confirm + Table</button>`:""}
 
-      ${item.status==="confirmed"?
-      `<button class="doneBtn"
-      onclick="updateStatus('${item.id}','completed')">
-      Completed
-      </button>`:""}
+      ${item.status==="confirmed" ?
+      `<button class="btn-complete" onclick="updateStatus('${item.id}','completed')">✅ Completed</button>`:""}
 
-      <button class="cancelBtn"
-      onclick="updateStatus('${item.id}','cancelled')">
-      Cancel
-      </button>
-
+      <button class="btn-cancel" onclick="updateStatus('${item.id}','cancelled')">❌ Cancel</button>
     </div>
     `;
   });
+}
+
+function applyFilter(){
+  const keyword=document.getElementById("search").value.toLowerCase();
+  let active=[], finished=[];
+
+  allData.forEach(data=>{
+    const match=
+      (data.name||"").toLowerCase().includes(keyword)||
+      (data.phone||"").includes(keyword)||
+      String(data.queueNumber||"").includes(keyword);
+
+    if(match){
+      if(data.status==="waiting"||data.status==="confirmed"){
+        active.push(data);
+      }else{
+        finished.push(data);
+      }
+    }
+  });
+
+  active.sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
+  finished.sort((a,b)=>(b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0));
+
+  renderList(active,document.getElementById("activeList"));
+  renderList(finished,document.getElementById("finishedList"));
 }
 
 function loadData(){
   db.collection("queues")
   .where("date","==",today())
   .onSnapshot(snapshot=>{
-
     allData=[];
-
     snapshot.forEach(doc=>{
       allData.push({...doc.data(),id:doc.id});
     });
-
-    const active=allData
-      .filter(d=>d.status==="waiting"||d.status==="confirmed")
-      .sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
-
-    const finished=allData
-      .filter(d=>d.status==="completed"||d.status==="cancelled")
-      .sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
-
-    render(active,document.getElementById("active"));
-    render(finished,document.getElementById("finished"));
-
+    applyFilter();
   });
 }
-
 </script>
 </head>
 
 <body>
 
 <div id="login">
-
-<h2>Admin Login</h2>
-
-<input type="password" id="password">
-
-<button onclick="checkPassword()">
-Login
-</button>
-
+  <h2>🔐 Admin Login</h2>
+  <input type="password" id="password" placeholder="输入密码 1234">
+  <button onclick="checkPassword()">Login</button>
 </div>
 
 <div id="panel" style="display:none;">
+  <h2>👑 后台管理系统 · 大字体版</h2>
 
-<h2>Waiting / Confirmed</h2>
-<div id="active"></div>
+  <input type="text" id="search" placeholder="🔍 搜索名字 / 电话 / 排号" oninput="applyFilter()">
 
-<hr>
+  <div class="section-title">🟢 等待中 + 已确认 (WAITING / CONFIRMED)</div>
+  <div id="activeList"></div>
 
-<h2>Completed / Cancelled</h2>
-<div id="finished"></div>
+  <hr>
 
+  <div class="section-title">🔴 已完成 + 已取消 (COMPLETED / CANCELLED)</div>
+  <div id="finishedList"></div>
 </div>
 
 </body>
