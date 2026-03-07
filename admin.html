@@ -3,154 +3,313 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>管理后台 · 醒目版</title>
+<title>餐厅管理后台</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-/* 整体放大基础字体，确保可读性 */
+/* 全局样式 - 大字体版本 */
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: Arial, sans-serif;
-  background: #f2f2f2;
+  background: #f0f2f5;
   margin: 0;
-  padding: 20px;
-  font-size: 18px;  /* 基础字体从16->18 */
+  padding: 25px;
+  font-size: 18px;
 }
 
 h2 {
   text-align: center;
-  font-size: 32px;   /* 更大标题 */
-  margin: 10px 0 20px;
+  font-size: 36px;
+  margin: 0 0 25px 0;
+  color: #1a1a1a;
+  font-weight: 800;
 }
 
 .section-title {
-  margin-top: 45px;
-  font-size: 28px;    /* 区域标题放大 */
+  margin-top: 50px;
+  font-size: 32px;
   font-weight: bold;
-  border-left: 8px solid #2c3e50;
-  padding-left: 15px;
+  padding-bottom: 15px;
+  border-bottom: 4px solid #333;
+  color: #2c3e50;
 }
 
+/* 登录区域 */
+#login {
+  max-width: 500px;
+  margin: 100px auto;
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+#login h2 {
+  font-size: 40px;
+  margin-bottom: 30px;
+}
+
+#login input {
+  width: 100%;
+  padding: 20px;
+  font-size: 22px;
+  border-radius: 12px;
+  border: 2px solid #ddd;
+  margin-bottom: 20px;
+}
+
+#login button {
+  width: 100%;
+  padding: 20px;
+  font-size: 24px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#login button:hover {
+  background: #0056b3;
+}
+
+/* 主面板 */
+#panel {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* 搜索框 */
+#search {
+  width: 100%;
+  padding: 20px 25px;
+  font-size: 22px;
+  border-radius: 60px;
+  border: 2px solid #ccc;
+  margin: 20px 0 30px 0;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+#search:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* 卡片样式 */
 .card {
   background: white;
-  padding: 25px;       /* 内边距增加 */
-  margin-top: 20px;
-  border-radius: 16px;
-  box-shadow: 0 5px 12px rgba(0,0,0,0.15);
-  font-size: 20px;     /* 卡片内基本字体放大 */
-  line-height: 1.7;
+  padding: 30px;
+  margin-top: 25px;
+  border-radius: 24px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  font-size: 22px;
+  line-height: 1.8;
+  border-left: 8px solid #007bff;
 }
 
-/* 重点信息：加大加粗 + 背景浅色块 */
+/* 排号 */
 .queue-number {
-  font-size: 38px;     /* 排号巨大 */
-  font-weight: 800;
-  background: #e1f0fa;
-  display: inline-block;
-  padding: 5px 20px;
-  border-radius: 60px;
-  margin-bottom: 12px;
-}
-
-.customer-name {
-  font-size: 32px;      /* 名字非常大 */
+  font-size: 48px;
   font-weight: 900;
-  margin: 10px 0 5px;
-  color: #1e3c5c;
-  border-bottom: 3px solid #ccc;
-  padding-bottom: 6px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: inline-block;
+  padding: 10px 30px;
+  border-radius: 60px;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-/* 成人/宝宝椅单独强调 */
+/* 顾客姓名 */
+.customer-name {
+  font-size: 42px;
+  font-weight: 900;
+  margin: 15px 0 10px 0;
+  color: #1e3c5c;
+  background: #f8f9fa;
+  padding: 10px 20px;
+  border-radius: 20px;
+  border-left: 6px solid #007bff;
+}
+
+/* 人数信息 - 特别放大 */
 .pax-info {
-  font-size: 26px;      /* 人数区域放大 */
-  font-weight: 600;
-  background: #f9f2e0;
-  padding: 8px 18px;
+  font-size: 32px;
+  font-weight: 700;
+  background: #fff3e0;
+  padding: 15px 25px;
   border-radius: 50px;
   display: inline-block;
-  margin: 12px 0;
+  margin: 15px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .pax-info span {
   font-weight: 900;
-  color: #b34b00;
-  margin: 0 8px;
+  color: #d35400;
+  font-size: 36px;
+  margin: 0 10px;
 }
 
+/* 桌号 */
 .table-number {
-  font-size: 34px;      /* 桌号醒目 */
-  font-weight: bold;
-  color: #c9302c;
-  background: #ffeeee;
-  padding: 5px 20px;
-  border-radius: 40px;
+  font-size: 40px;
+  font-weight: 900;
+  color: #c0392b;
+  background: #fee;
+  padding: 10px 30px;
+  border-radius: 50px;
   display: inline-block;
+  margin: 15px 0;
+  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.2);
 }
 
+/* 预约信息 */
+.booking-info {
+  font-size: 28px;
+  background: #e3f2fd;
+  padding: 15px 25px;
+  border-radius: 50px;
+  margin: 15px 0;
+  display: inline-block;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 最后联系时间 */
 .last-contacted {
-  font-size: 20px;      /* 联系时间稍大 */
+  font-size: 24px;
   color: #555;
-  background: #efefef;
-  padding: 6px 12px;
-  border-radius: 30px;
-  margin: 12px 0;
+  background: #f1f1f1;
+  padding: 10px 20px;
+  border-radius: 40px;
+  margin: 15px 0;
+  display: inline-block;
 }
 
-/* 状态标签放大 */
+/* 状态标签 */
 .status-badge {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: bold;
   display: inline-block;
-  padding: 8px 25px;
-  border-radius: 40px;
+  padding: 12px 35px;
+  border-radius: 50px;
+  margin: 15px 0;
+  text-transform: uppercase;
+}
+
+.status-badge.waiting {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.confirmed {
   background: #d4edda;
   color: #155724;
-  margin: 10px 0;
+}
+
+.status-badge.completed {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* 按钮区域 */
+.button-group {
+  margin-top: 25px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 button {
-  padding: 14px 22px;    /* 按钮更大 */
-  margin: 12px 12px 0 0;
+  padding: 16px 28px;
   border: none;
   border-radius: 50px;
-  font-size: 20px;       /* 按钮字体加大 */
+  font-size: 22px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  flex: 1 1 auto;
+  min-width: 180px;
 }
 
-.btn-confirm { background: #28a745; color: white; }
-.btn-complete { background: #007bff; color: white; }
-.btn-cancel { background: #dc3545; color: white; }
-.btn-whatsapp { background: #25D366; color: white; }
-.btn-whatsapp-clicked { background: #a1a1a1; color: white; }
-
-input, select {
-  width: 100%;
-  padding: 18px;        /* 输入框更大 */
-  margin-top: 20px;
-  border-radius: 12px;
-  border: 1px solid #bbb;
-  font-size: 20px;
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
 }
 
+button:active {
+  transform: translateY(0);
+}
+
+.btn-confirm {
+  background: #28a745;
+  color: white;
+}
+
+.btn-complete {
+  background: #007bff;
+  color: white;
+}
+
+.btn-cancel {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-whatsapp {
+  background: #25D366;
+  color: white;
+}
+
+.btn-whatsapp-clicked {
+  background: #95a5a6;
+  color: white;
+}
+
+/* 分割线 */
 hr {
-  margin: 60px 0;
-  border: 3px solid #444;
-  border-radius: 6px;
+  margin: 70px 0;
+  border: 3px solid #34495e;
+  border-radius: 3px;
 }
 
-/* 登录界面同样放大 */
-#login input {
-  width: 70%;
-  margin-right: 10px;
+/* 日期时间小标签 */
+.meta-info {
+  font-size: 22px;
+  color: #7f8c8d;
+  margin: 10px 0;
+  background: #f8f9fa;
+  padding: 8px 15px;
+  border-radius: 30px;
+  display: inline-block;
 }
-#login button {
-  width: auto;
-  padding: 14px 32px;
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  body { padding: 15px; }
+  h2 { font-size: 28px; }
+  .queue-number { font-size: 36px; }
+  .customer-name { font-size: 32px; }
+  .pax-info { font-size: 26px; }
+  .pax-info span { font-size: 30px; }
+  button { font-size: 20px; padding: 14px 20px; }
 }
 </style>
 
@@ -170,134 +329,194 @@ if (!firebase.apps.length) {
 
 const db = firebase.firestore();
 let allData = [];
+let unsubscribe = null;
 
-function today(){
+function today() {
   return new Date().toISOString().split("T")[0];
 }
 
-function checkPassword(){
-  if(document.getElementById("password").value==="1234"){
-    document.getElementById("login").style.display="none";
-    document.getElementById("panel").style.display="block";
+function checkPassword() {
+  if (document.getElementById("password").value === "1234") {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("panel").style.display = "block";
     loadData();
-  }else{
+  } else {
     alert("密码错误");
   }
 }
 
-function openWhatsApp(id, phone){
-  if(!phone) return;
+function openWhatsApp(id, phone) {
+  if (!phone) return;
 
   const now = new Date();
-
+  
   db.collection("queues").doc(id).update({
     lastContacted: firebase.firestore.Timestamp.fromDate(now)
   });
 
-  window.open("https://wa.me/"+phone.replace("+",""),"_blank");
+  window.open("https://wa.me/" + phone.replace("+", ""), "_blank");
 }
 
-function updateStatus(id,status){
-  let updateData = { status:status };
-  if(status==="completed"||status==="cancelled"){
+function updateStatus(id, status) {
+  let updateData = { status: status };
+  if (status === "completed" || status === "cancelled") {
     updateData.finishedAt = firebase.firestore.FieldValue.serverTimestamp();
   }
   db.collection("queues").doc(id).update(updateData);
 }
 
-function assignTable(id){
-  const tableNumber = prompt("请输入桌号:");
-  if(!tableNumber) return;
+function assignTable(id) {
+  const tableNumber = prompt("请输入桌号:", "");
+  if (!tableNumber) return;
   db.collection("queues").doc(id).update({
-    status:"confirmed",
-    tableNumber:tableNumber
+    status: "confirmed",
+    tableNumber: tableNumber
   });
 }
 
-function formatTime(timestamp){
-  if(!timestamp) return "";
+function formatTime(timestamp) {
+  if (!timestamp) return "";
   const date = timestamp.toDate();
-  return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// 修改后的渲染：突出显示名字，人数，宝宝椅，排号
-function renderList(list, container){
-  container.innerHTML="";
-  list.forEach(item=>{
-    // 构建显示内容，把姓名、成人/宝宝椅用超大号展示
-    container.innerHTML+=`
+function getStatusClass(status) {
+  switch(status) {
+    case 'waiting': return 'waiting';
+    case 'confirmed': return 'confirmed';
+    case 'completed': return 'completed';
+    case 'cancelled': return 'cancelled';
+    default: return '';
+  }
+}
+
+function renderList(list, container) {
+  container.innerHTML = "";
+  
+  if (list.length === 0) {
+    container.innerHTML = '<div class="card" style="text-align: center; color: #999;">暂无数据</div>';
+    return;
+  }
+  
+  list.forEach(item => {
+    const bookingDisplay = (item.bookingDate && item.bookingTime) ? 
+      `<div class="booking-info">📅 预约: ${item.bookingDate} ${item.bookingTime}</div>` : '';
+    
+    const metaInfo = `
+      <div class="meta-info">
+        📝 创建: ${item.date || '-'} ${item.time || ''}
+      </div>
+    `;
+    
+    container.innerHTML += `
     <div class="card">
       <div class="queue-number">🆔 ${item.queueNumber}</div>
-      <div style="font-size:22px; color:#2c3e50;">📅 ${item.date} | ⏰ ${item.time}</div>
+      
+      ${metaInfo}
+      ${bookingDisplay}
 
       <div class="customer-name">👤 ${item.name}</div>
 
       <div class="pax-info">
-        👨 成人 <span>${item.adults}</span>  &nbsp;&nbsp; 👶 宝宝椅 <span>${item.babyChairs}</span>
+        👨 成人 <span>${item.adults}</span>  &nbsp;&nbsp; 
+        👶 宝宝椅 <span>${item.babyChairs}</span>
       </div>
 
-      <div class="table-number">🏷 桌号: ${item.tableNumber||"-"}</div>
+      <div class="table-number">🏷 桌号: ${item.tableNumber || "—"}</div>
 
       ${item.lastContacted ? 
         `<div class="last-contacted">📞 最后联系: ${formatTime(item.lastContacted)}</div>` 
         : ""}
 
-      <div class="status-badge">📌 ${item.status}</div><br>
+      <div class="status-badge ${getStatusClass(item.status)}">📌 ${item.status}</div>
 
-      <button 
-        class="${item.lastContacted ? 'btn-whatsapp-clicked' : 'btn-whatsapp'}"
-        onclick="openWhatsApp('${item.id}','${item.phone}')">
-        WhatsApp
-      </button>
+      <div class="button-group">
+        <button 
+          class="${item.lastContacted ? 'btn-whatsapp-clicked' : 'btn-whatsapp'}"
+          onclick="openWhatsApp('${item.id}','${item.phone}')">
+          📱 WhatsApp
+        </button>
 
-      ${item.status==="waiting" ?
-      `<button class="btn-confirm" onclick="assignTable('${item.id}')">✅ Confirm + Table</button>`:""}
+        ${item.status === "waiting" ?
+        `<button class="btn-confirm" onclick="assignTable('${item.id}')">✅ 确认 + 桌号</button>` : ""}
 
-      ${item.status==="confirmed" ?
-      `<button class="btn-complete" onclick="updateStatus('${item.id}','completed')">✅ Completed</button>`:""}
+        ${item.status === "confirmed" ?
+        `<button class="btn-complete" onclick="updateStatus('${item.id}','completed')">✅ 完成</button>` : ""}
 
-      <button class="btn-cancel" onclick="updateStatus('${item.id}','cancelled')">❌ Cancel</button>
+        <button class="btn-cancel" onclick="updateStatus('${item.id}','cancelled')">❌ 取消</button>
+      </div>
     </div>
     `;
   });
 }
 
-function applyFilter(){
-  const keyword=document.getElementById("search").value.toLowerCase();
-  let active=[], finished=[];
+function applyFilter() {
+  const keyword = document.getElementById("search").value.toLowerCase().trim();
+  let active = [];
+  let finished = [];
 
-  allData.forEach(data=>{
-    const match=
-      (data.name||"").toLowerCase().includes(keyword)||
-      (data.phone||"").includes(keyword)||
-      String(data.queueNumber||"").includes(keyword);
+  allData.forEach(data => {
+    const match = 
+      (data.name || "").toLowerCase().includes(keyword) ||
+      (data.phone || "").includes(keyword) ||
+      String(data.queueNumber || "").toLowerCase().includes(keyword) ||
+      (data.bookingDate || "").includes(keyword);
 
-    if(match){
-      if(data.status==="waiting"||data.status==="confirmed"){
+    if (match) {
+      if (data.status === "waiting" || data.status === "confirmed") {
         active.push(data);
-      }else{
+      } else {
         finished.push(data);
       }
     }
   });
 
-  active.sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
-  finished.sort((a,b)=>(b.finishedAt?.seconds||0)-(a.finishedAt?.seconds||0));
+  // 排序：活跃的按创建时间正序，已完成的按完成时间倒序
+  active.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
+  finished.sort((a, b) => (b.finishedAt?.seconds || 0) - (a.finishedAt?.seconds || 0));
 
-  renderList(active,document.getElementById("activeList"));
-  renderList(finished,document.getElementById("finishedList"));
+  renderList(active, document.getElementById("activeList"));
+  renderList(finished, document.getElementById("finishedList"));
 }
 
-function loadData(){
-  db.collection("queues")
-  .where("date","==",today())
-  .onSnapshot(snapshot=>{
-    allData=[];
-    snapshot.forEach(doc=>{
-      allData.push({...doc.data(),id:doc.id});
+function loadData() {
+  const today_date = today();
+  
+  // 先取消之前的监听
+  if (unsubscribe) {
+    unsubscribe();
+  }
+  
+  // 监听今天的排号和未来的预约
+  unsubscribe = db.collection("queues")
+    .where("date", "==", today_date)
+    .onSnapshot(snapshot => {
+      allData = [];
+      snapshot.forEach(doc => {
+        allData.push({ ...doc.data(), id: doc.id });
+      });
+      
+      // 同时获取未来预约的等待/确认状态的订单
+      db.collection("queues")
+        .where("bookingDate", ">=", today_date)
+        .where("status", "in", ["waiting", "confirmed"])
+        .get()
+        .then(futureSnapshot => {
+          futureSnapshot.forEach(doc => {
+            if (!allData.some(item => item.id === doc.id)) {
+              allData.push({ ...doc.data(), id: doc.id });
+            }
+          });
+          applyFilter();
+        })
+        .catch(error => {
+          console.log("获取未来预约失败，可能是索引未建立，只显示今日数据");
+          applyFilter();
+        });
+    }, error => {
+      console.error("监听失败:", error);
+      alert("数据加载失败，请刷新重试");
     });
-    applyFilter();
-  });
 }
 </script>
 </head>
@@ -305,22 +524,27 @@ function loadData(){
 <body>
 
 <div id="login">
-  <h2>🔐 Admin Login</h2>
-  <input type="password" id="password" placeholder="输入密码 1234">
-  <button onclick="checkPassword()">Login</button>
+  <h2>🔐 管理员登录</h2>
+  <input type="password" id="password" placeholder="请输入密码">
+  <button onclick="checkPassword()">登录</button>
+  <div style="margin-top: 20px; color: #999; font-size: 18px;">默认密码: 1234</div>
 </div>
 
 <div id="panel" style="display:none;">
-  <h2>👑 后台管理系统 · 大字体版</h2>
+  <h2>👑 餐厅后台管理系统</h2>
 
-  <input type="text" id="search" placeholder="🔍 搜索名字 / 电话 / 排号" oninput="applyFilter()">
+  <input type="text" id="search" placeholder="🔍 搜索姓名 / 电话 / 排号 / 预约日期..." oninput="applyFilter()">
 
-  <div class="section-title">🟢 等待中 + 已确认 (WAITING / CONFIRMED)</div>
+  <div class="section-title">
+    🟢 等待中 + 已确认 (${new Date().toLocaleDateString()})
+  </div>
   <div id="activeList"></div>
 
   <hr>
 
-  <div class="section-title">🔴 已完成 + 已取消 (COMPLETED / CANCELLED)</div>
+  <div class="section-title">
+    🔴 已完成 + 已取消
+  </div>
   <div id="finishedList"></div>
 </div>
 
