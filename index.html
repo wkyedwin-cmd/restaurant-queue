@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Restaurant Queue</title>
+<title>餐厅排号系统</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -20,51 +20,102 @@ body {
   display: flex;
   justify-content: center;
   padding: 20px;
+  margin: 0;
 }
 
 .container {
   background: white;
   width: 100%;
-  max-width: 420px;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-width: 450px;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 h2 {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
+  color: #333;
+  font-size: 28px;
 }
 
 label {
   font-weight: bold;
   display: block;
-  margin-top: 12px;
+  margin-top: 15px;
+  color: #555;
+  font-size: 16px;
 }
 
 input, select {
   width: 100%;
   padding: 12px;
   font-size: 16px;
-  margin-top: 6px;
+  margin-top: 5px;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
 }
 
 button {
   width: 100%;
-  padding: 14px;
+  padding: 15px;
   font-size: 18px;
-  margin-top: 20px;
+  margin-top: 25px;
   border-radius: 10px;
   border: none;
   background-color: #007bff;
   color: white;
   font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 button:hover {
   background-color: #0056b3;
+}
+
+.date-time-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.date-time-row input,
+.date-time-row select {
+  width: 50%;
+}
+
+.queue-info {
+  background: #e8f4fd;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 18px;
+  color: #0056b3;
+  border: 1px dashed #007bff;
+}
+
+.queue-number-display {
+  font-size: 32px;
+  font-weight: bold;
+  color: #007bff;
+  margin: 10px 0;
+}
+
+.phone-input-container {
+  position: relative;
+}
+
+.iti {
+  width: 100%;
 }
 </style>
 
@@ -85,15 +136,47 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 let phoneInput;
 
-window.onload = function(){
+// 页面加载完成后的初始化
+window.onload = function() {
+  // 初始化电话号码输入
   phoneInput = window.intlTelInput(document.querySelector("#phone"), {
     initialCountry: "my",
-    preferredCountries: ["my","sg","cn"],
-    separateDialCode: false,
+    preferredCountries: ["my", "sg", "cn"],
+    separateDialCode: true,
     utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js"
   });
+  
+  // 设置日期最小值为今天
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("bookingDate").min = today;
+  document.getElementById("bookingDate").value = today;
+  
+  // 设置默认时间为下一个整点
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  let nextHour = hours;
+  if (minutes >= 30) {
+    nextHour = (hours + 1) % 24;
+  }
+  
+  // 格式化为两位数字
+  const defaultHour = nextHour.toString().padStart(2, '0') + ':00';
+  if (isValidTimeOption(defaultHour)) {
+    document.getElementById("bookingTime").value = defaultHour;
+  }
 };
 
+// 检查时间是否为有效选项
+function isValidTimeOption(time) {
+  const validTimes = [
+    "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
+    "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"
+  ];
+  return validTimes.includes(time);
+}
+
+// 生成每日字母（A-Z循环）
 function getDailyLetter() {
   const today = new Date();
   const start = new Date(today.getFullYear(), 0, 0);
@@ -103,6 +186,7 @@ function getDailyLetter() {
   return letters[dayOfYear % 26];
 }
 
+// 生成唯一的排号
 async function generateDailyQueueNumber() {
   const today = new Date().toISOString().split("T")[0];
   const dailyLetter = getDailyLetter();
@@ -113,40 +197,59 @@ async function generateDailyQueueNumber() {
     const fullQueueNumber = dailyLetter + formattedNumber;
 
     const snapshot = await db.collection("queues")
-      .where("date","==",today)
-      .where("queueNumber","==",fullQueueNumber)
+      .where("date", "==", today)
+      .where("queueNumber", "==", fullQueueNumber)
       .get();
 
     if (snapshot.empty) return fullQueueNumber;
   }
 }
 
-async function submitForm(e){
+// 提交表单
+async function submitForm(e) {
   e.preventDefault();
 
-  if(!phoneInput.isValidNumber()){
+  if (!phoneInput.isValidNumber()) {
     alert("请输入正确的电话号码 / Please enter valid phone number");
     return;
   }
 
   const queueNumber = await generateDailyQueueNumber();
+  
+  const bookingDate = document.getElementById("bookingDate").value;
+  const bookingTime = document.getElementById("bookingTime").value;
 
-  await db.collection("queues").add({
-    queueNumber: queueNumber,
-    name: document.getElementById("name").value,
-    phone: phoneInput.getNumber(),
-    adults: parseInt(document.getElementById("adults").value),
-    babyChairs: parseInt(document.getElementById("babyChairs").value),
-    seating: document.getElementById("seating").value,
-    status: "waiting",
-    date: new Date().toISOString().split("T")[0],
-    time: new Date().toLocaleTimeString(),
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  try {
+    await db.collection("queues").add({
+      queueNumber: queueNumber,
+      name: document.getElementById("name").value,
+      phone: phoneInput.getNumber(),
+      adults: parseInt(document.getElementById("adults").value),
+      babyChairs: parseInt(document.getElementById("babyChairs").value),
+      seating: document.getElementById("seating").value,
+      status: "waiting",
+      bookingDate: bookingDate,
+      bookingTime: bookingTime,
+      date: new Date().toISOString().split("T")[0],
+      time: new Date().toLocaleTimeString(),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString()
+    });
 
-  alert("您的排号是: " + queueNumber);
-  document.getElementById("queueForm").reset();
-  phoneInput.setCountry("my");
+    alert(`✅ 排号成功！\n\n您的排号是: ${queueNumber}\n预约日期: ${bookingDate}\n预约时间: ${bookingTime}\n\n请保存好您的排号`);
+    
+    // 重置表单
+    document.getElementById("queueForm").reset();
+    phoneInput.setCountry("my");
+    
+    // 重新设置日期为今天
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("bookingDate").value = today;
+    
+  } catch (error) {
+    console.error("提交失败:", error);
+    alert("提交失败，请重试");
+  }
 }
 </script>
 </head>
@@ -154,32 +257,65 @@ async function submitForm(e){
 <body>
 
 <div class="container">
-<h2>餐厅排号系统</h2>
+  <h2>🍜 餐厅排号系统</h2>
+  
+  <div style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">
+    请填写以下信息进行排号
+  </div>
 
-<form id="queueForm" onsubmit="submitForm(event)">
+  <form id="queueForm" onsubmit="submitForm(event)">
+    <label>👤 姓名 Name</label>
+    <input type="text" id="name" placeholder="请输入您的姓名" required>
 
-<label>姓名 Name</label>
-<input type="text" id="name" required>
+    <label>📞 电话 Phone</label>
+    <div class="phone-input-container">
+      <input type="tel" id="phone" required>
+    </div>
 
-<label>电话 Phone</label>
-<input type="tel" id="phone" required>
+    <label>📅 预约日期 Booking Date</label>
+    <input type="date" id="bookingDate" required>
 
-<label>成人 Adults</label>
-<input type="number" id="adults" min="1" required>
+    <label>⏰ 预约时间 Booking Time</label>
+    <select id="bookingTime" required>
+      <option value="">请选择时间</option>
+      <optgroup label="午餐">
+        <option value="11:00">11:00</option>
+        <option value="11:30">11:30</option>
+        <option value="12:00">12:00</option>
+        <option value="12:30">12:30</option>
+        <option value="13:00">13:00</option>
+        <option value="13:30">13:30</option>
+      </optgroup>
+      <optgroup label="晚餐">
+        <option value="17:00">17:00</option>
+        <option value="17:30">17:30</option>
+        <option value="18:00">18:00</option>
+        <option value="18:30">18:30</option>
+        <option value="19:00">19:00</option>
+        <option value="19:30">19:30</option>
+        <option value="20:00">20:00</option>
+      </optgroup>
+    </select>
 
-<label>宝宝椅 Baby Chairs</label>
-<input type="number" id="babyChairs" min="0" value="0">
+    <label>👨 成人人数 Adults</label>
+    <input type="number" id="adults" min="1" value="2" required>
 
-<label>座位选择 Seating</label>
-<select id="seating">
-  <option value="indoor">室内 Indoor</option>
-  <option value="outdoor">室外 Outdoor</option>
-  <option value="any">随意 Fastest Available</option>
-</select>
+    <label>👶 宝宝椅数量 Baby Chairs</label>
+    <input type="number" id="babyChairs" min="0" value="0">
 
-<button type="submit">提交 Submit</button>
+    <label>🪑 座位选择 Seating</label>
+    <select id="seating">
+      <option value="indoor">室内 Indoor</option>
+      <option value="outdoor">室外 Outdoor</option>
+      <option value="any">随意 Fastest Available</option>
+    </select>
 
-</form>
+    <button type="submit">📝 提交排号</button>
+  </form>
+  
+  <div style="text-align: center; margin-top: 20px; font-size: 14px; color: #999;">
+    提交后您将获得一个唯一排号
+  </div>
 </div>
 
 </body>
