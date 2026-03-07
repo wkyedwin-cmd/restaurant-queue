@@ -3,246 +3,293 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+
+<title>Queue Admin</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
+
 body{
-  font-family:Arial;
-  margin:0;
-  padding:15px;
-  background:#f4f4f4;
+font-family:Arial;
+background:#f5f5f5;
+margin:0;
+padding:20px;
 }
 
-.card{
-  background:white;
-  padding:15px;
-  margin-bottom:15px;
-  border-radius:10px;
-  box-shadow:0 3px 8px rgba(0,0,0,0.1);
+h2{
+text-align:center;
 }
 
-.big-table{
-  font-size:26px;
-  font-weight:bold;
-  color:#007bff;
+.searchBox{
+margin-bottom:15px;
+text-align:center;
+}
+
+.searchBox input{
+width:300px;
+max-width:90%;
+padding:10px;
+font-size:16px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #ddd;
+text-align:center;
+}
+
+th{
+background:#333;
+color:white;
+}
+
+.oldQueue{
+background:#ffdddd;
 }
 
 button{
-  padding:8px 12px;
-  margin:4px 4px 0 0;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+padding:6px 10px;
+border:none;
+border-radius:5px;
+cursor:pointer;
 }
 
-.confirmBtn{background:#28a745;color:white;}
-.doneBtn{background:#333;color:white;}
-.cancelBtn{background:#dc3545;color:white;}
-.waBtn{background:#25D366;color:white;}
+.confirm{
+background:#28a745;
+color:white;
+}
+
+.complete{
+background:#007bff;
+color:white;
+}
+
+.delete{
+background:#dc3545;
+color:white;
+}
+
 </style>
 
 <script>
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
-  authDomain: "yunnans-1u.firebaseapp.com",
-  projectId: "yunnans-1u",
+apiKey: "AIzaSyAhha-pRzGBXHfSO3PdZ0UmLgGtxfLWcPQ",
+authDomain: "yunnans-1u.firebaseapp.com",
+projectId: "yunnans-1u",
+storageBucket: "yunnans-1u.firebasestorage.app",
+messagingSenderId: "490439485047",
+appId: "1:490439485047:web:42d5ca722ade09c6b88872"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let allData=[];
+let allQueues=[];
 
 function today(){
-  return new Date().toISOString().split("T")[0];
+return new Date().toISOString().split("T")[0];
 }
 
-function checkPassword(){
-  if(document.getElementById("password").value==="1234"){
-    document.getElementById("login").style.display="none";
-    document.getElementById("panel").style.display="block";
-    loadData();
-  }else{
-    alert("Wrong password");
-  }
+function formatTime(timestamp){
+
+if(!timestamp) return "-";
+
+const d = timestamp.toDate();
+
+const h = d.getHours().toString().padStart(2,"0");
+const m = d.getMinutes().toString().padStart(2,"0");
+
+return h + ":" + m;
+
 }
 
-function openWhatsApp(id,phone){
+function isOver40Minutes(timestamp){
 
-  if(!phone){
-    alert("没有电话号码");
-    return;
-  }
+if(!timestamp) return false;
 
-  // 清理号码（只保留数字）
-  let clean = phone.replace(/[^0-9]/g, "");
+const now = new Date();
+const queueTime = timestamp.toDate();
 
-  if(clean.length < 8){
-    alert("电话号码格式错误");
-    return;
-  }
+const diff = (now - queueTime) / 60000;
 
-  // 记录联系时间
-  const now=new Date().toLocaleTimeString();
+return diff >= 40;
 
-  db.collection("queues").doc(id).update({
-    lastContacted: now
-  });
-
-  // 使用稳定API
-  const url="https://api.whatsapp.com/send?phone="+clean;
-
-  window.open(url,"_blank");
 }
 
-function updateStatus(id,status){
-  db.collection("queues").doc(id).update({
-    status:status,
-    completedAt: Date.now()
-  });
+function loadQueues(){
+
+db.collection("queues")
+.where("date","==",today())
+.orderBy("timestamp")
+.onSnapshot(snapshot=>{
+
+allQueues=[];
+
+snapshot.forEach(doc=>{
+
+let d=doc.data();
+d.id=doc.id;
+
+allQueues.push(d);
+
+});
+
+renderTable(allQueues);
+
+});
+
 }
 
-function confirmWithTable(id){
+function renderTable(data){
 
-  const tables=[
-    "A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12","A13","A14","A15","A16","A17","A18","A19","A20","A21","A22","A23",
-    "B1","B2","B3","B4","B5","B6","B7","B8",
-    "VIP 1","VIP 2","VIP 3",
-    "C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14"
-  ];
+const table=document.getElementById("tbody");
 
-  const available = tables.join(", ");
+table.innerHTML="";
 
-  const table = prompt("请选择桌号:\n\n"+available);
+data.forEach(d=>{
 
-  if(!table) return;
+let row=document.createElement("tr");
 
-  if(!tables.includes(table)){
-    alert("无效桌号");
-    return;
-  }
-
-  db.collection("queues").doc(id).update({
-    status:"confirmed",
-    tableNumber:table
-  });
+if(isOver40Minutes(d.timestamp) && d.status=="waiting"){
+row.classList.add("oldQueue");
 }
 
-function updateAdults(id,current){
+row.innerHTML=`
 
-  const newVal=prompt("修改人数 (必须 ≥1):",current);
-  if(!newVal) return;
+<td>${d.queueNumber}</td>
+<td>${formatTime(d.timestamp)}</td>
+<td>${d.name}</td>
+<td>${d.phone}</td>
+<td>${d.adults}</td>
+<td>${d.babyChair ?? 0}</td>
+<td>${d.status}</td>
 
-  const num=parseInt(newVal);
+<td>
 
-  if(isNaN(num) || num<1){
-    alert("人数必须为数字且 ≥1");
-    return;
-  }
+<button class="confirm"
+onclick="confirmQueue('${d.id}')">
+Confirm
+</button>
 
-  db.collection("queues").doc(id).update({
-    adults:num
-  });
+<button class="complete"
+onclick="completeQueue('${d.id}')">
+Complete
+</button>
+
+<button class="delete"
+onclick="deleteQueue('${d.id}')">
+Delete
+</button>
+
+</td>
+
+`;
+
+table.appendChild(row);
+
+});
+
 }
 
-function render(list,container,reverse=false){
-  container.innerHTML="";
-  if(reverse) list=list.reverse();
+function searchCustomer(){
 
-  list.forEach(item=>{
-    container.innerHTML+=`
-    <div class="card">
-      <b>${item.queueNumber}</b><br>
-      👤 ${item.name}<br>
-      📞 ${item.phone}<br>
+const keyword=document
+.getElementById("search")
+.value
+.toLowerCase();
 
-      👨 人数: ${item.adults}
-      <button onclick="updateAdults('${item.id}',${item.adults})">
-        修改人数
-      </button>
-      <br>
+const filtered=allQueues.filter(d=>{
 
-      🏷 桌号:
-      <div class="big-table">${item.tableNumber||"-"}</div>
+return(
+(d.name && d.name.toLowerCase().includes(keyword)) ||
+(d.phone && d.phone.toLowerCase().includes(keyword)) ||
+(d.queueNumber && d.queueNumber.toLowerCase().includes(keyword))
+);
 
-      📌 状态: ${item.status}
+});
 
-      ${item.lastContacted ? 
-        `<br>📩 Last contacted: ${item.lastContacted}`:""}
+renderTable(filtered);
 
-      <br><br>
-
-      <button class="waBtn"
-        onclick="openWhatsApp('${item.id}','${item.phone}')">
-        WhatsApp
-      </button>
-
-      ${item.status==="waiting"?
-        `<button class="confirmBtn"
-          onclick="confirmWithTable('${item.id}')">
-          Confirm + Table
-        </button>`:""}
-
-      ${item.status==="confirmed"?
-        `<button class="doneBtn"
-          onclick="updateStatus('${item.id}','completed')">
-          Completed
-        </button>`:""}
-
-      <button class="cancelBtn"
-        onclick="updateStatus('${item.id}','cancelled')">
-        Cancel
-      </button>
-
-    </div>
-    `;
-  });
 }
 
-function loadData(){
-  db.collection("queues")
-  .where("date","==",today())
-  .onSnapshot(snapshot=>{
-    allData=[];
-    snapshot.forEach(doc=>{
-      allData.push({...doc.data(),id:doc.id});
-    });
+function confirmQueue(id){
 
-    const active=allData
-      .filter(d=>d.status==="waiting"||d.status==="confirmed")
-      .sort((a,b)=>(a.timestamp?.seconds||0)-(b.timestamp?.seconds||0));
+db.collection("queues")
+.doc(id)
+.update({status:"confirmed"});
 
-    const finished=allData
-      .filter(d=>d.status==="completed"||d.status==="cancelled")
-      .sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
-
-    render(active,document.getElementById("active"));
-    render(finished,document.getElementById("finished"));
-  });
 }
+
+function completeQueue(id){
+
+db.collection("queues")
+.doc(id)
+.update({status:"completed"});
+
+}
+
+function deleteQueue(id){
+
+if(confirm("Delete this queue?")){
+
+db.collection("queues")
+.doc(id)
+.delete();
+
+}
+
+}
+
+window.onload=loadQueues;
+
 </script>
+
 </head>
 
 <body>
 
-<div id="login">
-  <h2>Admin Login</h2>
-  <input type="password" id="password">
-  <button onclick="checkPassword()">Login</button>
+<h2>Yunnans Queue Admin</h2>
+
+<div class="searchBox">
+
+<input
+id="search"
+placeholder="Search Name / Queue / Phone"
+onkeyup="searchCustomer()">
+
 </div>
 
-<div id="panel" style="display:none;">
-  <h2>Waiting / Confirmed</h2>
-  <div id="active"></div>
+<table>
 
-  <hr>
+<thead>
 
-  <h2>Completed / Cancelled</h2>
-  <div id="finished"></div>
-</div>
+<tr>
+<th>Queue</th>
+<th>Time</th>
+<th>Name</th>
+<th>Phone</th>
+<th>People</th>
+<th>Baby Chair</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+
+</thead>
+
+<tbody id="tbody"></tbody>
+
+</table>
 
 </body>
 </html>
